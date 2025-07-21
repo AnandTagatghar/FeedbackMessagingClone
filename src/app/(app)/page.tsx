@@ -1,103 +1,105 @@
-import Image from "next/image";
+"use client";
+
+import NavBar from "@/components/NavBar";
+
+import * as React from "react";
+import { Card, CardContent, CardFooter, CardTitle } from "@/components/ui/card";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+  type CarouselApi,
+} from "@/components/ui/carousel";
+import data from "@/data/homePageCarouselData.json";
+import { InfiniteMovingCards } from "@/components/ui/infinite-moving-cards";
+import infiniteCardsData from "@/data/homePageInfiniteCards.json";
+import Footer from "@/components/Footer";
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [api, setApi] = React.useState<CarouselApi>();
+  const [current, setCurrent] = React.useState(0);
+  const [count, setCount] = React.useState(0);
+  React.useEffect(() => {
+    if (!api) {
+      return;
+    }
+    setCount(api.scrollSnapList().length);
+    setCurrent(api.selectedScrollSnap() + 1);
+    api.on("select", () => {
+      setCurrent(api.selectedScrollSnap() + 1);
+    });
+  }, [api]);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  return (
+    <div className="min-w-screen min-h-screen bg-backgroundPrimary">
+      <NavBar />
+
+      <div className="flex justify-center items-center">
+        <div className="px-10 py-20  text-center">
+          <h1 className="text-2xl sm:text-4xl lg:text-5xl font-bold text-primaryText">
+            Welcome To Improve Your Skill
+          </h1>
+          <p className="text-secondaryText tracking-wide mt-2 text-sm sm:text-md">
+            Get Honest, Anonymous Feedback on Your Projects
+          </p>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
+      </div>
+
+      <div className="w-full h-full p-10 flex justify-center items-center">
+        <div className="mx-auto max-w-md">
+          <Carousel setApi={setApi} className="w-full max-w-md">
+            <CarouselContent>
+              {data.map((singleData, index) => (
+                <CarouselItem key={index}>
+                  <Card className="p-5">
+                    <CardTitle className="font-bold text-2xl">
+                      {singleData.title}
+                    </CardTitle>
+                    <CardContent className="flex aspect-square items-center justify-center p-6">
+                      <img
+                        src={singleData.image}
+                        alt={singleData.title}
+                        className="w-full h-full object-cover"
+                      />
+                    </CardContent>
+                    <CardFooter className="text-secondaryText">
+                      {singleData.description}
+                    </CardFooter>
+                  </Card>
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+            <CarouselPrevious />
+            <CarouselNext />
+          </Carousel>
+          <div className="text-muted-foreground py-2 text-center text-sm">
+            Slide {current} of {count}
+          </div>
+        </div>
+      </div>
+
+      <div className="w-full h-full px-10">
+        <h1 className="pt-20 text-center text-2xl sm:text-4xl lg:text-5xl font-bold text-primaryText">
+          The best way to predict the future is to invent it.
+        </h1>
+        <div className="text-center flex justify-center">
+          <p className="text-secondaryText tracking-wide mt-2 text-sm sm:text-md w-[80%]">
+            A powerful reminder that true innovation comes from taking bold
+            action today. Transform ideas into impact — don’t wait for the
+            future, build it.
+          </p>
+        </div>
+        <div className="h-[30rem] rounded-md flex flex-col antialiased  dark:bg-black dark:bg-grid-white/[0.05] items-center justify-center relative overflow-hidden">
+          <InfiniteMovingCards
+            items={infiniteCardsData}
+            direction="left"
+            speed="slow"
           />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+        </div>
+      </div>
+      <Footer />
     </div>
   );
 }

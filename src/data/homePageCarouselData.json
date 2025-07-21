@@ -1,0 +1,27 @@
+[
+  {
+    "title": "Get Anonymous Feedback",
+    "description": "Upload your project and receive honest, constructive feedback from peers—without names or pressure.",
+    "image": "/homePageCarousel/Get_anonymous_feedback.jpeg"
+  },
+  {
+    "title": "Share with Anyone",
+    "description": "Generate a unique link to share with teammates, mentors, or communities. No sign-up required for reviewers.",
+    "image": "/homePageCarousel/Share_with_anyone.jpeg"
+  },
+  {
+    "title": "Actionable Insights",
+    "description": "See what people really think about your work and use their suggestions to make meaningful improvements.",
+    "image": "/homePageCarousel/Actionable_insights.jpeg"
+  },
+  {
+    "title": "No Account Needed",
+    "description": "Quick and easy! Upload your project and start collecting feedback without any complicated setup.",
+    "image": "/homePageCarousel/No_account_needed.jpeg"
+  },
+  {
+    "title": "Grow Through Feedback",
+    "description": "Feedback is a gift. Use it to refine your ideas, improve your execution, and grow your skills.",
+    "image": "/homePageCarousel/Grow_through_feedbacks.jpg"
+  }
+]
