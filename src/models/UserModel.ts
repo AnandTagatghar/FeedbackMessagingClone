@@ -15,6 +15,7 @@ export interface UsernameSchemaInterface extends Document {
   verifyCode: string;
   verifyCodeExpiry: Date;
   isAcceptingMessages: boolean;
+  provider: "credentials" | "google";
   messages: Array<MessageSchemaInterface>;
   isPasswordCorrect(password: string): Promise<boolean>;
 }
@@ -34,6 +35,10 @@ export const MessageSchema: Schema<MessageSchemaInterface> =
 
 export const UserSchema: Schema<UsernameSchemaInterface> =
   new Schema<UsernameSchemaInterface>({
+    provider: {
+      type: String,
+      default: "credentials",
+    },
     username: {
       type: String,
       unique: true,
@@ -53,7 +58,6 @@ export const UserSchema: Schema<UsernameSchemaInterface> =
     password: {
       type: String,
       trim: true,
-      required: [true, `Please provide password`],
     },
     isAdmin: {
       type: Boolean,
@@ -66,16 +70,14 @@ export const UserSchema: Schema<UsernameSchemaInterface> =
     verifyCode: {
       type: String,
       trim: true,
-      required: [true, `Please provide a veirfy code`],
       match: [/^\d{6}$/, `Please provide a valid verify code`],
     },
     verifyCodeExpiry: {
       type: Date,
-      required: [true, `Please provide a veirfy code expiry`],
     },
     isAcceptingMessages: {
       type: Boolean,
-      default: false,
+      default: true,
     },
     messages: {
       type: [MessageSchema],
@@ -88,6 +90,26 @@ UserSchema.pre("save", async function (next) {
   if (!user.isModified("password")) return next();
 
   user.password = await bcrypt.hash(user.password, 10);
+  next();
+});
+
+UserSchema.pre("validate", function (next) {
+  if (this.provider === "credentials") {
+    if (!this.password) {
+      this.invalidate("password", "Please provide password");
+    }
+
+    if (!this.verifyCode) {
+      this.invalidate("verifyCode", "Please provide a verify code");
+    }
+
+    if (!this.verifyCodeExpiry) {
+      this.invalidate(
+        "verifyCodeExpiry",
+        "Please provide a verify code expiry"
+      );
+    }
+  }
   next();
 });
 

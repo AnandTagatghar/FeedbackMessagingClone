@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import z from "zod";
@@ -22,10 +22,41 @@ import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { signUpSchema } from "@/schemas/signUpSchema";
 import axios from "axios";
+import { useDebounceValue } from "usehooks-ts";
 
 const signUpPage = () => {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [username, setUsername] = useDebounceValue("", 500);
+  const [usernameMessage, setUsernameMessage] = useState<string>("");
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const checkUsernameUnique = async () => {
+      if (username) {
+        setUsernameMessage("");
+        try {
+          const result = await axios.get(
+            `/api/check-username-unique?username=${username}`,
+            { signal: controller.signal }
+          );
+
+          setUsernameMessage(result.data.message);
+        } catch (error: any) {
+          const axiosError = error as AxiosError<ApiResponse>;
+          setUsernameMessage(
+            axiosError.response?.data.message ?? `Username is not unique`
+          );
+        }
+      }
+    };
+
+    checkUsernameUnique();
+
+    return () => {
+      controller.abort();
+    };
+  }, [username]);
 
   const form = useForm<z.infer<typeof signUpSchema>>({
     resolver: zodResolver(signUpSchema),
@@ -47,7 +78,7 @@ const signUpPage = () => {
 
       toast.success("Sign up process done, please verify you email");
 
-      router.replace("/verify-code");
+      router.replace(`/verify-code?username=${form.getValues("username")}`);
     } catch (error: any) {
       console.error(`Error on login: ${error}`);
 
@@ -63,6 +94,7 @@ const signUpPage = () => {
       form.resetField("email");
       form.resetField("username");
       form.resetField("password");
+      setUsernameMessage("");
     } finally {
       setIsSubmitting(false);
     }
@@ -85,24 +117,6 @@ const signUpPage = () => {
             className="space-y-8 mt-5"
           >
             <FormField
-              name="email"
-              control={form.control}
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-primaryText">Email:</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="Email"
-                      {...field}
-                      className="text-primaryText"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
               name="username"
               control={form.control}
               render={({ field }) => (
@@ -111,6 +125,35 @@ const signUpPage = () => {
                   <FormControl>
                     <Input
                       placeholder="username"
+                      {...field}
+                      className="text-primaryText"
+                      onChange={(e) => {
+                        field.onChange(e);
+                        setUsername(e.target.value);
+                      }}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                  {usernameMessage && usernameMessage.includes("not") ? (
+                    <>
+                      <p className="text-red-500">{usernameMessage}</p>
+                    </>
+                  ) : (
+                    <p className="text-green-500">{usernameMessage}</p>
+                  )}
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              name="email"
+              control={form.control}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-primaryText">Email:</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="Email"
                       {...field}
                       className="text-primaryText"
                     />

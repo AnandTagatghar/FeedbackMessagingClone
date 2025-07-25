@@ -66,6 +66,27 @@ export const authOptions: NextAuthOptions = {
   ],
 
   callbacks: {
+    async signIn({ user, account }) {
+      await dbConnect();
+
+      if (account?.provider == "google") {
+        const existingUser = await UserModel.findOne({
+          email: user.email,
+          provider: "google",
+        });
+
+        if (!existingUser) {
+          await UserModel.create({
+            provider: "google",
+            username: user.name,
+            email: user.email,
+            isVerified: true,
+          });
+        }
+      }
+
+      return true;
+    },
     async jwt({ token, user }) {
       if (user) {
         token._id = user._id;
