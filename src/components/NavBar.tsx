@@ -17,7 +17,7 @@ const NavBar = () => {
   return (
     <div className="w-full h-30 bg-cardColor flex justify-between items-center">
       <h2 className="text-primaryText font-extrabold text-4xl ml-20">
-        {brand_name}
+        <Link href="/dashboard">{brand_name}</Link>
       </h2>
       <div className="text-primaryText mr-20 flex gap-3 items-center">
         {!user && (

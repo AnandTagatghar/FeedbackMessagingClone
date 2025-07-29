@@ -19,6 +19,7 @@ export default function Home() {
   const [api, setApi] = React.useState<CarouselApi>();
   const [current, setCurrent] = React.useState(0);
   const [count, setCount] = React.useState(0);
+
   React.useEffect(() => {
     if (!api) {
       return;

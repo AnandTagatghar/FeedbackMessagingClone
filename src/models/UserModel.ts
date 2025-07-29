@@ -1,10 +1,5 @@
-import { Document, Model, model, models, Schema } from "mongoose";
+import { Model, model, models, Schema, Types } from "mongoose";
 import bcrypt from "bcryptjs";
-
-export interface MessageSchemaInterface extends Document {
-  content: string;
-  createdAt: Date;
-}
 
 export interface UsernameSchemaInterface extends Document {
   username: string;
@@ -16,22 +11,9 @@ export interface UsernameSchemaInterface extends Document {
   verifyCodeExpiry: Date;
   isAcceptingMessages: boolean;
   provider: "credentials" | "google";
-  messages: Array<MessageSchemaInterface>;
+  uploads: Types.ObjectId[];
   isPasswordCorrect(password: string): Promise<boolean>;
 }
-
-export const MessageSchema: Schema<MessageSchemaInterface> =
-  new Schema<MessageSchemaInterface>({
-    content: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-    createdAt: {
-      type: Date,
-      default: Date.now,
-    },
-  });
 
 export const UserSchema: Schema<UsernameSchemaInterface> =
   new Schema<UsernameSchemaInterface>({
@@ -79,10 +61,12 @@ export const UserSchema: Schema<UsernameSchemaInterface> =
       type: Boolean,
       default: true,
     },
-    messages: {
-      type: [MessageSchema],
-      default: [],
-    },
+    uploads: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "uploads",
+      },
+    ],
   });
 
 UserSchema.pre("save", async function (next) {
