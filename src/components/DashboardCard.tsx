@@ -52,7 +52,7 @@ const DashboardCard = ({ userData }: { userData: cardDataType }) => {
                       <img
                         src={ref}
                         alt={userData.title}
-                        className="w-full h-full cover-object"
+                        className="w-full h-full cover-object rounded"
                       />
                     </CardContent>
                   </Card>

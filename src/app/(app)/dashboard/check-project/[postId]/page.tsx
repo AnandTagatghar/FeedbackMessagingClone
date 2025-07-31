@@ -53,7 +53,6 @@ export default function checkProjectPage() {
       );
 
       setPostData(result.data.data);
-      console.log(result.data.data);
     } catch (error: any) {
       const axiosError = error as AxiosError<ApiResponse>;
 
@@ -100,6 +99,8 @@ export default function checkProjectPage() {
           error.message ||
           `Something went wrong`,
       });
+
+      form.resetField("message");
     }
   }
 
@@ -216,7 +217,9 @@ export default function checkProjectPage() {
                         <p className="text-secondaryText text-sm">
                           {displayDate}
                         </p>
-                        <p className="text-primaryText mt-4">{message.content}</p>
+                        <p className="text-primaryText mt-4">
+                          {message.content}
+                        </p>
                       </div>
                     );
                   })}

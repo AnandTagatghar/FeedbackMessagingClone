@@ -1,8 +1,10 @@
+import dbConnect from "@/lib/dbConnect";
 import Uploads from "@/models/UploadModel";
 import { getObjectURL } from "@/utils/s3Features";
 
 export async function GET(request: Request) {
   try {
+    await dbConnect();
     const allPosts = await Uploads.aggregate([
       {
         $lookup: {

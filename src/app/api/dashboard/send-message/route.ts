@@ -56,9 +56,26 @@ export async function POST(request: Request) {
       );
     }
 
-    await Uploads.findByIdAndUpdate(postId, {
-      $push: { messages: newMessage._id },
-    });
+    const updatedUser = await Uploads.findOneAndUpdate(
+      { _id: postId, isAcceptingMessages: true },
+      {
+        $push: { messages: newMessage._id },
+      },
+      {
+        new: true,
+      }
+    );
+
+    if (!updatedUser) {
+      return Response.json(
+        {
+          status: false,
+          statusCode: 403,
+          message: `Failed to update message`,
+        },
+        { status: 403 }
+      );
+    }
 
     return Response.json(
       {
