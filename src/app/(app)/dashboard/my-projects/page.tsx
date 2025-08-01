@@ -10,7 +10,7 @@ import {
   HoverCardContent,
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
-import { Pencil, Trash2 } from "lucide-react";
+import { Loader2, Pencil, Plus, Trash2 } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,6 +22,27 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import z from "zod";
+import { addFilesToPostSchema } from "@/schemas/addFilesToPostSchema";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  Form,
+  FormControl,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 
 interface allPostsDataInterface {
   _id: string;
@@ -46,6 +67,10 @@ export default function myProjectsPage() {
 
   const [fetchingAllPosts, setFetchingAllPosts] = useState<boolean>(false);
   const [allPosts, setAllPosts] = useState<allPostsDataInterface[]>([]);
+
+  const [open, setOpen] = useState<boolean>(false);
+  const [addFilesFormSubmitting, setAddFilesFormSubmitting] =
+    useState<boolean>();
 
   async function fetchAllPosts() {
     setFetchingAllPosts(true);
@@ -74,7 +99,18 @@ export default function myProjectsPage() {
   }, [user]);
 
   async function handleRemoveKey(key: string, postId: string) {
+    console.log(`delete button hitted`);
     try {
+      await axios.delete("/api/dashboard/delete-key-from-post", {
+        data: {
+          key,
+          postId,
+        },
+      });
+
+      toast.success("Card deleted successfully");
+
+      fetchAllPosts();
     } catch (error: any) {
       const axiosError = error as AxiosError<ApiResponse>;
 
@@ -86,6 +122,64 @@ export default function myProjectsPage() {
       });
     }
   }
+
+  const form = useForm<z.infer<typeof addFilesToPostSchema>>({
+    resolver: zodResolver(addFilesToPostSchema),
+  });
+
+  const handleSubmit = async (
+    data: z.infer<typeof addFilesToPostSchema>,
+    id: string | number
+  ) => {
+    setAddFilesFormSubmitting(true);
+    try {
+      if (!data.files || data.files.length == 0) {
+        throw new Error(`Accepting atleast 1 file`);
+      }
+
+      const uploadedKeys: string[] = [];
+
+      for (let file of Array.from(data.files)) {
+        const result = await axios.get(`/api/dashboard/get-upload-url`, {
+          params: {
+            fileType: file.type,
+            fileName: file.name,
+          },
+        });
+
+        const { signedUrl, key } = result.data.data;
+
+        await fetch(signedUrl, {
+          method: "put",
+          headers: { "Content-Typ": file.type },
+          body: file,
+        });
+
+        uploadedKeys.push(key);
+      }
+
+      await axios.patch("/api/dashboard/add-my-project-files", {
+        keys: uploadedKeys,
+        postId: id,
+      });
+
+      toast.success("Upload files success");
+
+      fetchAllPosts();
+    } catch (error: any) {
+      const axiosError = error as AxiosError<ApiResponse>;
+
+      toast.error("Failed to upload Files", {
+        description:
+          axiosError.response?.data.message ||
+          error.message ||
+          `Something went wrong`,
+      });
+    } finally {
+      setOpen(false);
+      setAddFilesFormSubmitting(false);
+    }
+  };
 
   return (
     <div className=" bg-backgroundPrimary p-15">
@@ -191,6 +285,76 @@ export default function myProjectsPage() {
                           </HoverCard>
                         );
                       })}
+
+                      <Dialog open={open} onOpenChange={setOpen}>
+                        <DialogTrigger asChild>
+                          <HoverCard>
+                            <HoverCardTrigger asChild>
+                              <div
+                                itemType="button"
+                                className="bg-primaryText rounded-full p-2 text-2xl text-backgroundPrimary font-semibold hover:opacity-75 hover:cursor-pointer active:opacity-50 w-[2.5rem] h-[2.5rem] text-[2rem] self-center"
+                                onClick={() => {
+                                  setOpen(true);
+                                }}
+                              >
+                                <Plus />
+                              </div>
+                            </HoverCardTrigger>
+                            <HoverCardContent className="w-[11rem]">
+                              Add images
+                            </HoverCardContent>
+                          </HoverCard>
+                        </DialogTrigger>
+
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Please submit your files:</DialogTitle>
+                          </DialogHeader>
+
+                          <Form {...form}>
+                            <form
+                              onSubmit={form.handleSubmit((data) =>
+                                handleSubmit(data, postData._id)
+                              )}
+                              className="space-y-4"
+                            >
+                              <FormItem>
+                                <FormLabel>Upload Files:</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    type="file"
+                                    multiple
+                                    onChange={(e) => {
+                                      if (!e.target.files) {
+                                        return;
+                                      }
+                                      form.setValue("files", e.target.files);
+                                    }}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+
+                              <DialogFooter>
+                                <Button
+                                  className="hover:opacity-75 hover:cursor-pointer active:opacity-50"
+                                  type="submit"
+                                  disabled={addFilesFormSubmitting}
+                                >
+                                  {addFilesFormSubmitting ? (
+                                    <>
+                                      <Loader2 className="animate-apin" />
+                                      Please wait
+                                    </>
+                                  ) : (
+                                    <>Submit</>
+                                  )}
+                                </Button>
+                              </DialogFooter>
+                            </form>
+                          </Form>
+                        </DialogContent>
+                      </Dialog>
                     </div>
 
                     {postData && postData.messages.length > 0 ? (

@@ -42,27 +42,29 @@ const DashboardCard = ({ userData }: { userData: cardDataType }) => {
         </CardAction>
       </CardHeader>
       <CardContent>
-        <Carousel className="w-full max-w-xs ml-10 h-[25rem]">
-          <CarouselContent>
-            {userData.keys.map((ref, index) => (
-              <CarouselItem key={index}>
-                <div className="p-1">
-                  <Card>
-                    <CardContent className="flex aspect-square items-center justify-center p-6 w-full h-full">
-                      <img
-                        src={ref}
-                        alt={userData.title}
-                        className="w-full h-full cover-object rounded"
-                      />
-                    </CardContent>
-                  </Card>
-                </div>
-              </CarouselItem>
-            ))}
-          </CarouselContent>
-          <CarouselPrevious />
-          <CarouselNext />
-        </Carousel>
+        {userData.keys.length > 0 && (
+          <Carousel className="w-full max-w-xs ml-10 h-[25rem]">
+            <CarouselContent>
+              {userData.keys.map((ref, index) => (
+                <CarouselItem key={index}>
+                  <div className="p-1">
+                    <Card>
+                      <CardContent className="flex aspect-square items-center justify-center p-6 w-full h-full">
+                        <img
+                          src={ref}
+                          alt={userData.title}
+                          className="w-full h-full cover-object rounded"
+                        />
+                      </CardContent>
+                    </Card>
+                  </div>
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+            <CarouselPrevious />
+            <CarouselNext />
+          </Carousel>
+        )}
 
         <h2 className="text-primaryText text-xl font-semibold">Description:</h2>
         <p className="text-secondaryText mt-5">{userData.description}</p>

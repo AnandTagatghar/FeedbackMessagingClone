@@ -27,11 +27,11 @@ export async function putObjectURL(ContentType: string, key: string) {
   return signedUrl;
 }
 
-export async function deleteObjectURL(key: string) {
+export async function deleteObject(key: string) {
   const command = new DeleteObjectCommand({
     Bucket: process.env.AWS_BUCKET_NAME,
     Key: key,
   });
 
-  await getSignedUrl(s3client, command);
+  await s3client.send(command);
 }

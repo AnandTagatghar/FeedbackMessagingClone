@@ -1,7 +1,10 @@
+import dbConnect from "@/lib/dbConnect";
 import UserModel from "@/models/UserModel";
 
 export async function GET(request: Request) {
   try {
+    await dbConnect();
+
     const { searchParams } = await new URL(request.url);
     const userId = searchParams.get("userId");
 
@@ -55,6 +58,8 @@ export async function GET(request: Request) {
 
 export async function PUT(request: Request) {
   try {
+    await dbConnect();
+
     const { searchParams } = await new URL(request.url);
     const userId = searchParams.get("userId");
 
