@@ -1,8 +1,12 @@
+import dbConnect from "@/lib/dbConnect";
 import { Messages } from "@/models/MessageModel";
 import Uploads from "@/models/UploadModel";
+import mongoose, { Schema } from "mongoose";
 
 export async function POST(request: Request) {
   try {
+    await dbConnect();
+
     const body = await request.json();
 
     if (body == undefined) {
@@ -16,7 +20,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const { content, postId } = body;
+    const { content, postId, userId } = body;
 
     if (content == undefined) {
       return Response.json(
@@ -40,40 +44,101 @@ export async function POST(request: Request) {
       );
     }
 
-    let newMessage = await Messages.create({
-      postId,
+    if (userId == undefined) {
+      return Response.json(
+        {
+          status: false,
+          statusCode: 400,
+          message: `Please provide userId value.`,
+        },
+        { status: 400 }
+      );
+    }
+
+    const newMessage = await Messages.create({
       content,
+      postId,
     });
 
     if (!newMessage) {
       return Response.json(
         {
           status: false,
-          statusCode: 400,
-          message: `Failed to upload message`,
+          statusCode: 500,
+          message: "Failed to create a message.",
         },
-        { status: 400 }
+        { status: 500 }
       );
     }
 
-    const updatedUser = await Uploads.findOneAndUpdate(
-      { _id: postId, isAcceptingMessages: true },
+    const post = await Uploads.aggregate([
       {
-        $push: { messages: newMessage._id },
+        $match: {
+          _id: new mongoose.Types.ObjectId(postId),
+        },
       },
       {
-        new: true,
+        $lookup: {
+          from: "users",
+          localField: "user",
+          foreignField: "_id",
+          as: "user",
+        },
+      },
+      {
+        $unwind: "$user",
+      },
+      {
+        $match: {
+          "user.isAcceptingMessages": true,
+        },
+      },
+      {
+        $set: {
+          messages: {
+            $cond: {
+              if: { $isArray: "$messages" },
+              then: {
+                $concatArrays: [
+                  "$messages",
+                  [new mongoose.Types.ObjectId(newMessage._id)],
+                ],
+              },
+              else: [new mongoose.Types.ObjectId(newMessage._id)],
+            },
+          },
+        },
+      },
+      {
+        $project: {
+          createdAt: 1,
+          description: 1,
+          keys: 1,
+          messages: 1,
+          title: 1,
+          username: "$user.username",
+          email: "$user.email",
+        },
+      },
+    ]);
+
+    await Uploads.updateOne(
+      {
+        _id: new mongoose.Types.ObjectId(postId),
+      },
+      {
+        $addToSet: { messages: new mongoose.Types.ObjectId(newMessage._id) },
       }
     );
 
-    if (!updatedUser) {
+    if (post == undefined || post.length == 0) {
       return Response.json(
         {
           status: false,
-          statusCode: 403,
-          message: `Failed to update message`,
+          statusCode: 500,
+          message: `Failed to upload message.`,
         },
-        { status: 403 }
+        { status: 500 }
       );
     }
 
@@ -81,7 +146,8 @@ export async function POST(request: Request) {
       {
         status: true,
         statusCode: 200,
-        message: `Message stored successfully`,
+        message: `New message created successfully.`,
+        data: post[0],
       },
       { status: 200 }
     );

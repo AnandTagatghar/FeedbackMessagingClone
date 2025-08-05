@@ -1,16 +1,5 @@
 "use client";
 
-import { ApiResponse } from "@/types/ApiResponse";
-import axios, { AxiosError } from "axios";
-import { useSession } from "next-auth/react";
-import { useEffect, useState } from "react";
-import { toast } from "sonner";
-import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger,
-} from "@/components/ui/hover-card";
-import { Loader2, Pencil, Plus, Trash2 } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,20 +11,35 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { editFileSchema } from "@/schemas/editFileSchema";
+import { ApiResponse } from "@/types/ApiResponse";
+import { zodResolver } from "@hookform/resolvers/zod";
+
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@radix-ui/react-hover-card";
+import axios, { AxiosError } from "axios";
+import { Loader2, Pencil, Plus, Trash2 } from "lucide-react";
+import { useSession } from "next-auth/react";
+import React, { useCallback, useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import z from "zod";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
-  DialogTrigger,
+  DialogClose,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
+  DialogTrigger,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import z from "zod";
-import { addFilesToPostSchema } from "@/schemas/addFilesToPostSchema";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { Label } from "@/components/ui/label";
 import {
   Form,
   FormControl,
@@ -43,43 +47,28 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { addFilesToPostSchema } from "@/schemas/addFilesToPostSchema";
 
-interface allPostsDataInterface {
+interface allPostsIdsInterface {
   _id: string;
-  username: string;
-  email: string;
-  keys: { key: string; ref: string }[];
-  isAcceptingMessages: boolean;
-  messages: {
-    content: string;
-    createdAt: string;
-  }[];
-  title: string;
-  description: string;
-  githubLink?: string;
-  projectLink?: string;
-  createdAt: Date;
 }
 
-export default function myProjectsPage() {
+export default function myProjectPage() {
   const { data: session } = useSession();
   const user = session?.user;
 
-  const [fetchingAllPosts, setFetchingAllPosts] = useState<boolean>(false);
-  const [allPosts, setAllPosts] = useState<allPostsDataInterface[]>([]);
+  const [postIds, setPostIds] = useState<allPostsIdsInterface[]>([]);
+  const [fetchingAllPostsIds, setFetchingAllPostsIds] =
+    useState<boolean>(false);
 
-  const [open, setOpen] = useState<boolean>(false);
-  const [addFilesFormSubmitting, setAddFilesFormSubmitting] =
-    useState<boolean>();
-
-  async function fetchAllPosts() {
-    setFetchingAllPosts(true);
+  async function fetchPostsIds() {
+    setFetchingAllPostsIds(true);
     try {
       const result = await axios.get(
-        `/api/dashboard/get-my-projects?userId=${user._id}`
+        `/api/dashboard/fetch-my-projects-all-post-ids?userId=${user._id}`
       );
 
-      setAllPosts(result.data.data.posts);
+      setPostIds(result.data.data.postsId);
     } catch (error: any) {
       const axiosError = error as AxiosError<ApiResponse>;
 
@@ -90,27 +79,111 @@ export default function myProjectsPage() {
           `Something went wrong`,
       });
     } finally {
-      setFetchingAllPosts(false);
+      setFetchingAllPostsIds(false);
     }
   }
 
   useEffect(() => {
-    fetchAllPosts();
+    fetchPostsIds();
   }, [user]);
 
-  async function handleRemoveKey(key: string, postId: string) {
-    console.log(`delete button hitted`);
+  return (
+    <div className="min-w-screen min-h-[86vh] bg-backgroundPrimary p-10">
+      {fetchingAllPostsIds && (
+        <>
+          <h1 className="text-primaryText text-2xl font-semibold">
+            Please wait it&apos;s it&apos;s loading
+          </h1>
+        </>
+      )}
+
+      {!fetchingAllPostsIds && postIds.length == 0 && (
+        <>
+          <h1 className="text-primaryText text-2xl font-semibold">
+            No Post&apos;s found, please upload first.
+          </h1>
+        </>
+      )}
+
+      <div className="flex gap-4 flex-col w-full">
+        {!fetchingAllPostsIds && postIds.length > 0 && (
+          <>
+            {postIds.map((postId) => {
+              return <SinglePost postId={postId._id} key={postId._id} />;
+            })}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+interface singlePostDataInterface {
+  _id: string;
+  username: string;
+  email: string;
+  keys: { key: string; signedUrl: string }[];
+  isAcceptingMessages: boolean;
+  messages: {
+    content: string;
+    createdAt: string;
+  }[];
+  title: string;
+  description: string;
+  githubLink?: string;
+  projectLink?: string;
+  createdAt: string;
+}
+
+function SinglePost({ postId }: { postId: string }) {
+  const [fetchingPostData, setFetchingPostData] = useState<boolean>(false);
+
+  const [postData, setPostData] = useState<singlePostDataInterface | null>(
+    null
+  );
+
+  const [isAddSubmitting, setIsAddSubmitting] = useState<boolean>(false);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState<boolean>(false);
+
+  const [isEditSubmitting, setIsEditSubmitting] = useState<boolean>(false);
+
+  const fetchSinglePostData = async () => {
+    setFetchingPostData(true);
     try {
-      await axios.delete("/api/dashboard/delete-key-from-post", {
-        data: {
+      const result = await axios.get(
+        `/api/dashboard/fetch-my-project-single-post-data?postId=${postId}`
+      );
+
+      setPostData(result.data.data.postIdData);
+    } catch (error: any) {
+      const axiosError = error as AxiosError<ApiResponse>;
+      console.error(
+        `Post ID: ${postId}, Error: ${axiosError.response?.data.message || error.message || "Something went wrong"}`
+      );
+    } finally {
+      setFetchingPostData(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchSinglePostData();
+  }, [postId]);
+
+  const handleDeleteKey = useCallback(async (key: string, postId: string) => {
+    try {
+      await axios.delete(`/api/dashboard/delete-uploaded-key`, {
+        params: {
           key,
-          postId,
         },
       });
 
-      toast.success("Card deleted successfully");
+      await axios.patch("/api/dashboard/delete-key-from-post", {
+        key,
+        postId,
+      });
 
-      fetchAllPosts();
+      toast.success("Card deleted successfully");
+      fetchSinglePostData();
     } catch (error: any) {
       const axiosError = error as AxiosError<ApiResponse>;
 
@@ -121,17 +194,13 @@ export default function myProjectsPage() {
           `Something went wrong`,
       });
     }
-  }
+  }, []);
 
-  const form = useForm<z.infer<typeof addFilesToPostSchema>>({
-    resolver: zodResolver(addFilesToPostSchema),
-  });
-
-  const handleSubmit = async (
+  const handleAddFilesSubmit = async (
     data: z.infer<typeof addFilesToPostSchema>,
-    id: string | number
+    postId: string
   ) => {
-    setAddFilesFormSubmitting(true);
+    setIsAddSubmitting(true);
     try {
       if (!data.files || data.files.length == 0) {
         throw new Error(`Accepting atleast 1 file`);
@@ -160,12 +229,12 @@ export default function myProjectsPage() {
 
       await axios.patch("/api/dashboard/add-my-project-files", {
         keys: uploadedKeys,
-        postId: id,
+        postId: postId,
       });
 
       toast.success("Upload files success");
 
-      fetchAllPosts();
+      fetchSinglePostData();
     } catch (error: any) {
       const axiosError = error as AxiosError<ApiResponse>;
 
@@ -176,235 +245,377 @@ export default function myProjectsPage() {
           `Something went wrong`,
       });
     } finally {
-      setOpen(false);
-      setAddFilesFormSubmitting(false);
+      setIsAddSubmitting(false);
+      setIsAddDialogOpen(false);
     }
   };
 
-  return (
-    <div className=" bg-backgroundPrimary p-15">
-      {allPosts.length > 0 ? (
-        <>
-          <h1 className="text-secondaryText font-semibold text-3xl pb-10">
-            Please find all your posts below:
-          </h1>
+  const handleEditKey = useCallback(
+    async (
+      values: z.infer<typeof editFileSchema>,
+      postId: string,
+      key: string,
+      closeDialog: () => void
+    ) => {
+      setIsEditSubmitting(true);
+      try {
+        if (!values.file || values.file == undefined) {
+          throw new Error("Please select file");
+        }
 
-          {allPosts.map((postData, index) => {
-            let dateTime = new Date(postData.createdAt);
+        let file: any = Array.from(values.file);
+        file = file[0];
 
-            let displayDateTime = `${dateTime.getDate().toString().padStart(2, "0")}-${dateTime.getMonth().toString().padStart(2, "0")}-${dateTime.getFullYear().toString().padStart(2, "0")} ${dateTime.getHours().toString().padStart(2, "0")}:${dateTime.getMinutes().toString().padStart(2, "0")}`;
-            return (
-              <div
-                className="bt-10 text-primaryText p-10 rounded-lg border-2 border-primaryText"
-                key={index}
-              >
-                {postData && (
-                  <div>
-                    <h1 className="text-md font-semibold">
-                      <span className="text-secondaryText">Created Time: </span>
-                      {displayDateTime}
-                    </h1>
+        const result = await axios.get(
+          `/api/dashboard/get-upload-url?fileName=${file.name}&fileType=${file.type}`
+        );
 
-                    <h2 className="text-md">
-                      <span className="text-secondaryText">Title: </span>
-                      {postData.title}
-                    </h2>
-                    <h2 className="text-md ">
-                      <span className="text-secondaryText">Description: </span>
-                      <br />
-                      {postData.description}
-                    </h2>
-                    {postData.githubLink ? (
-                      <h2 className="text-md ">
-                        <span className="text-secondaryText">
-                          Github Link:{" "}
-                        </span>
-                        <br />
-                        {postData.githubLink}
-                      </h2>
-                    ) : (
-                      ""
-                    )}
-                    {postData.projectLink ? (
-                      <h2 className="text-md ">
-                        <span className="text-secondaryText">
-                          Project Link:{" "}
-                        </span>
-                        <br />
-                        {postData.projectLink}
-                      </h2>
-                    ) : (
-                      ""
-                    )}
+        const { signedUrl, key: fetchedKeyValue } = result.data.data;
 
-                    <div className="w-full flex flex-wrap gap-3 mt-10">
-                      {postData.keys.map((obj, index) => {
-                        return (
-                          <HoverCard key={index}>
-                            <HoverCardTrigger asChild>
-                              <img
-                                src={obj.ref}
-                                alt={obj.key}
-                                className="w-[18rem] h-[18rem] cover-object rounded-lg"
-                              />
-                            </HoverCardTrigger>
+        await fetch(signedUrl, {
+          method: "put",
+          body: file,
+          headers: {
+            "Content-type": file.type,
+          },
+        });
 
-                            <HoverCardContent className="flex gap-3 w-[6rem]">
-                              <Pencil className="hover:opacity-75 active:opacity-50 hover:cursor-pointer" />
+        await axios.delete(`/api/dashboard/delete-uploaded-key?key=${key}`);
 
-                              <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <Trash2 className="hover:opacity-75 active:opacity-50 hover:cursor-pointer" />
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>
-                                      Are you absolutely sure?
-                                    </AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                      This action cannot be undone. This will
-                                      permanently delete this card data from our
-                                      servers.
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel>
-                                      Cancel
-                                    </AlertDialogCancel>
-                                    <AlertDialogAction
-                                      onClick={(e) => {
-                                        handleRemoveKey(obj.key, postData._id);
-                                      }}
-                                    >
-                                      Yes, please remove
-                                    </AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
-                            </HoverCardContent>
-                          </HoverCard>
-                        );
-                      })}
+        await axios.patch("/api/dashboard/delete-key-from-post", {
+          key: key,
+          postId,
+        });
 
-                      <Dialog open={open} onOpenChange={setOpen}>
-                        <DialogTrigger asChild>
-                          <HoverCard>
-                            <HoverCardTrigger asChild>
-                              <div
-                                itemType="button"
-                                className="bg-primaryText rounded-full p-2 text-2xl text-backgroundPrimary font-semibold hover:opacity-75 hover:cursor-pointer active:opacity-50 w-[2.5rem] h-[2.5rem] text-[2rem] self-center"
-                                onClick={() => {
-                                  setOpen(true);
-                                }}
-                              >
-                                <Plus />
-                              </div>
-                            </HoverCardTrigger>
-                            <HoverCardContent className="w-[11rem]">
-                              Add images
-                            </HoverCardContent>
-                          </HoverCard>
-                        </DialogTrigger>
+        await axios.patch("/api/dashboard/add-my-project-files", {
+          keys: [fetchedKeyValue],
+          postId: postId,
+        });
 
-                        <DialogContent>
-                          <DialogHeader>
-                            <DialogTitle>Please submit your files:</DialogTitle>
-                          </DialogHeader>
+        toast.success(`Edit file success`);
 
-                          <Form {...form}>
-                            <form
-                              onSubmit={form.handleSubmit((data) =>
-                                handleSubmit(data, postData._id)
-                              )}
-                              className="space-y-4"
-                            >
-                              <FormItem>
-                                <FormLabel>Upload Files:</FormLabel>
-                                <FormControl>
-                                  <Input
-                                    type="file"
-                                    multiple
-                                    onChange={(e) => {
-                                      if (!e.target.files) {
-                                        return;
-                                      }
-                                      form.setValue("files", e.target.files);
-                                    }}
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
+        fetchSinglePostData();
+      } catch (error: any) {
+        const axiosError = error as AxiosError<ApiResponse>;
 
-                              <DialogFooter>
-                                <Button
-                                  className="hover:opacity-75 hover:cursor-pointer active:opacity-50"
-                                  type="submit"
-                                  disabled={addFilesFormSubmitting}
-                                >
-                                  {addFilesFormSubmitting ? (
-                                    <>
-                                      <Loader2 className="animate-apin" />
-                                      Please wait
-                                    </>
-                                  ) : (
-                                    <>Submit</>
-                                  )}
-                                </Button>
-                              </DialogFooter>
-                            </form>
-                          </Form>
-                        </DialogContent>
-                      </Dialog>
-                    </div>
-
-                    {postData && postData.messages.length > 0 ? (
-                      <>
-                        <h1 className="text-xl text-secondaryText py-10 text-center">
-                          Please find project messages below
-                        </h1>
-                        <div className="w-full h-[20rem] flex flex-col gap-3 overflow-auto">
-                          {postData.messages.map((message, index) => {
-                            let date = new Date(message.createdAt);
-                            let displayDate = `${date.getDate()}-${date.getMonth().toString().padStart(2, "0")}-${date.getFullYear()} ${date.getHours().toString().padStart(2, ")")}:${date.getMinutes().toString().padStart(2, "0")}`;
-
-                            return (
-                              <div
-                                key={index}
-                                className="w-full py-4 rounded-lg bg-cardColor p-4"
-                              >
-                                <p className="text-secondaryText text-sm">
-                                  {displayDate}
-                                </p>
-                                <p className="text-primaryText mt-4">
-                                  {message.content}
-                                </p>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <p className="text-xl text-secondaryText py-10 text-center">
-                          No messages on this project
-                        </p>
-                      </>
-                    )}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </>
-      ) : (
-        <>
-          <h1 className="text-xl font-semibold text-primaryText">
-            {fetchingAllPosts
-              ? "Please wait fetching details"
-              : `Details are not found, please try later`}
-          </h1>
-        </>
-      )}
-    </div>
+        toast.error("Failed to edit file", {
+          description:
+            axiosError.response?.data.message ||
+            error.message ||
+            `Something went wrong`,
+        });
+      } finally {
+        closeDialog();
+        setIsEditSubmitting(false);
+      }
+    },
+    []
   );
+
+  return (
+    <>
+      {postData && (
+        <div className="bt-10 text-primaryText p-10 rounded-lg border-2 border-primaryText">
+          <h1 className="text-md font-semibold">
+            <span className="text-secondaryText">Created Time: </span>
+            {postData.createdAt}
+          </h1>
+
+          <h2 className="text-md">
+            <span className="text-secondaryText">Title: </span>
+            {postData.title}
+          </h2>
+
+          <h2 className="text-md ">
+            <span className="text-secondaryText">Description: </span>
+            <br />
+            {postData.description}
+          </h2>
+
+          {postData.githubLink ? (
+            <h2 className="text-md ">
+              <span className="text-secondaryText">Github Link: </span>
+              <br />
+              {postData.githubLink}
+            </h2>
+          ) : (
+            ""
+          )}
+
+          {postData.projectLink && (
+            <h2 className="text-md ">
+              <span className="text-secondaryText">Project Link: </span>
+              <br />
+              {postData.projectLink}
+            </h2>
+          )}
+
+          {postData.keys.length > 0 && (
+            <>
+              <h1 className="text-xl text-secondaryText mt-10">
+                Please find your uploaded files below:
+              </h1>
+            </>
+          )}
+
+          {postData.keys.length == 0 && (
+            <>
+              <h1 className="text-xl text-secondaryText mt-10">
+                No files are available, please click below button to add files:
+              </h1>
+            </>
+          )}
+
+          <div className="flex flex-wrap gap-3 w-full px-10 mt-10">
+            {postData.keys.map((obj, index) => {
+              return (
+                <ImageCard
+                  key={index}
+                  imgRef={obj.signedUrl}
+                  keyValue={obj.key}
+                  postId={postId}
+                  handleDeleteKey={handleDeleteKey}
+                  handleEditKey={handleEditKey}
+                  isEditSubmitting={isEditSubmitting}
+                />
+              );
+            })}
+
+            <AddFilesAction
+              isAddSubmitting={isAddSubmitting}
+              isAddDialogOpen={isAddDialogOpen}
+              setIsAddDialogOpen={setIsAddDialogOpen}
+              handleAddFilesSubmit={handleAddFilesSubmit}
+              postId={postId}
+            />
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+function ImageCard({
+  imgRef,
+  keyValue,
+  postId,
+  handleDeleteKey,
+  handleEditKey,
+  isEditSubmitting,
+}: {
+  imgRef: string;
+  keyValue: string;
+  postId: string;
+  handleDeleteKey: (key: string, postId: string) => void;
+  handleEditKey: (
+    values: z.infer<typeof editFileSchema>,
+    postId: string,
+    key: string,
+    closeDialog: () => void
+  ) => Promise<void>;
+  isEditSubmitting: boolean;
+}) {
+  const [isEditOpen, setIsEditOpen] = useState<boolean>(false);
+
+  const editForm = useForm<z.infer<typeof editFileSchema>>({
+    resolver: zodResolver(editFileSchema),
+  });
+
+  return (
+    <>
+      <HoverCard>
+        <HoverCardTrigger asChild>
+          <img
+            src={imgRef}
+            alt={keyValue}
+            className="w-[18rem] h-[18rem] cover-object rounded-lg"
+          />
+        </HoverCardTrigger>
+
+        <HoverCardContent className="flex gap-3 w-[6rem]">
+          <div
+            itemType="button"
+            className=" hover:opacity-75 hover:cursor-pointer active:opacity-50"
+            onClick={() => {
+              setIsEditOpen(true);
+            }}
+          >
+            <Pencil />
+          </div>
+
+          <AlertDialog>
+            <AlertDialogTrigger>
+              <Trash2 className="hover:opacity-75 active:opacity-50 hover:cursor-pointer" />
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This action cannot be undone. This will permanently delete
+                  this card data from our servers.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={(e) => {
+                    handleDeleteKey(keyValue, postId);
+                  }}
+                >
+                  Yes, please remove
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </HoverCardContent>
+      </HoverCard>
+
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Please edit your file:</DialogTitle>
+          </DialogHeader>
+
+          <Form {...editForm}>
+            <form
+              onSubmit={editForm.handleSubmit((data) =>
+                handleEditKey(data, postId, keyValue, () => {
+                  setIsEditOpen(false);
+                })
+              )}
+              className="space-y-4"
+            >
+              <FormItem>
+                <FormLabel>Upload Files:</FormLabel>
+                <FormControl>
+                  <Input
+                    type="file"
+                    onChange={(e) => {
+                      if (!e.target.files) {
+                        return;
+                      }
+                      editForm.setValue("file", e.target.files);
+                    }}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+
+              <DialogFooter>
+                <Button
+                  className="hover:opacity-75 hover:cursor-pointer active:opacity-50"
+                  type="submit"
+                  disabled={isEditSubmitting}
+                >
+                  {isEditSubmitting ? (
+                    <>
+                      <Loader2 className="animate-apin" />
+                      Please wait
+                    </>
+                  ) : (
+                    <>Submit</>
+                  )}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
+function AddFilesAction({
+  isAddSubmitting,
+  isAddDialogOpen,
+  setIsAddDialogOpen,
+  handleAddFilesSubmit,
+  postId,
+}: {
+  isAddSubmitting: boolean;
+  isAddDialogOpen: boolean;
+  setIsAddDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  handleAddFilesSubmit: (
+    data: z.infer<typeof addFilesToPostSchema>,
+    postId: string
+  ) => Promise<void>;
+  postId: string;
+}) {
+  const addFilesForm = useForm<z.infer<typeof addFilesToPostSchema>>({
+    resolver: zodResolver(addFilesToPostSchema),
+  });
+
+  return (
+    <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+      <DialogTrigger asChild>
+        <HoverCard>
+          <HoverCardTrigger asChild>
+            <div
+              itemType="button"
+              className="bg-primaryText rounded-full p-2 text-2xl text-backgroundPrimary font-semibold hover:opacity-75 hover:cursor-pointer active:opacity-50 w-[2.5rem] h-[2.5rem] text-[2rem] self-center"
+              onClick={() => {
+                setIsAddDialogOpen(true);
+              }}
+            >
+              <Plus />
+            </div>
+          </HoverCardTrigger>
+          <HoverCardContent className="w-[11rem]">Add images</HoverCardContent>
+        </HoverCard>
+      </DialogTrigger>
+
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Please submit your files:</DialogTitle>
+        </DialogHeader>
+
+        <Form {...addFilesForm}>
+          <form
+            onSubmit={addFilesForm.handleSubmit((data) =>
+              handleAddFilesSubmit(data, postId)
+            )}
+            className="space-y-4"
+          >
+            <FormItem>
+              <FormLabel>Upload Files:</FormLabel>
+              <FormControl>
+                <Input
+                  type="file"
+                  multiple
+                  onChange={(e) => {
+                    if (!e.target.files) {
+                      return;
+                    }
+                    addFilesForm.setValue("files", e.target.files);
+                  }}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+
+            <DialogFooter>
+              <Button
+                className="hover:opacity-75 hover:cursor-pointer active:opacity-50"
+                type="submit"
+                disabled={isAddSubmitting}
+              >
+                {isAddSubmitting ? (
+                  <>
+                    <Loader2 className="animate-apin" />
+                    Please wait
+                  </>
+                ) : (
+                  <>Submit</>
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function MessageCard(){
+  return <>This is a message one</>
 }

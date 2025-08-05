@@ -32,9 +32,6 @@ export async function PATCH(request: Request) {
       );
     }
 
-    console.log("*".repeat(50));
-    console.log(keys);
-
     await Uploads.findByIdAndUpdate(
       postId,
       {

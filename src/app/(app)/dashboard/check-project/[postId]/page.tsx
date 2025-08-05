@@ -19,6 +19,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
+import { useSession } from "next-auth/react";
 
 interface postDataInterface {
   _id: string;
@@ -37,6 +38,8 @@ interface postDataInterface {
 }
 
 export default function checkProjectPage() {
+  const { data: session } = useSession();
+  const user = session?.user;
   const params = useParams();
   const { postId } = params;
 
@@ -83,6 +86,7 @@ export default function checkProjectPage() {
       const result = await axios.post(`/api/dashboard/send-message`, {
         content: values.message,
         postId: postId,
+        userId: user._id,
       });
 
       toast.success("Message sent successfully");

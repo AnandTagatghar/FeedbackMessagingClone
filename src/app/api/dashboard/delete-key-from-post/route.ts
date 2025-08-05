@@ -1,7 +1,6 @@
 import Uploads from "@/models/UploadModel";
-import { deleteObject } from "@/utils/s3Features";
 
-export async function DELETE(request: Request) {
+export async function PATCH(request: Request) {
   try {
     const body = await request.json();
     if (body == undefined) {
@@ -48,14 +47,11 @@ export async function DELETE(request: Request) {
       }
     );
 
-    await deleteObject(key);
-
     return Response.json({
       status: true,
       statusCode: 200,
       message: `Delete key success`,
     });
-    
   } catch (error: any) {
     return Response.json(
       {

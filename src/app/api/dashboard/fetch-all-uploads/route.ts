@@ -26,7 +26,7 @@ export async function GET(request: Request) {
           userId: "$user._id",
           keys: 1,
           createdAt: 1,
-          _id:1
+          _id: 1,
         },
       },
     ]);
@@ -37,6 +37,7 @@ export async function GET(request: Request) {
           status: false,
           statusCode: 404,
           message: `Posts are not available`,
+          data: [],
         },
         { status: 404 }
       );

@@ -8,23 +8,23 @@ export async function GET(request: Request) {
     await dbConnect();
 
     const { searchParams } = new URL(request.url);
-    const userId = searchParams.get("userId");
+    const postId = searchParams.get("postId");
 
-    if (userId == undefined) {
+    if (postId == undefined) {
       return Response.json(
         {
           status: false,
           statusCode: 400,
-          message: `Please provide userId parameter`,
+          message: `Please provide postId parameter`,
         },
         { status: 400 }
       );
     }
 
-    const posts = await Uploads.aggregate([
+    const post = await Uploads.aggregate([
       {
         $match: {
-          user: new Types.ObjectId(userId),
+          _id: new Types.ObjectId(postId),
         },
       },
       {
@@ -51,12 +51,11 @@ export async function GET(request: Request) {
           messages: {
             $sortArray: {
               input: "$messages",
-              sortBy: { createdAt: -1 },
+              sortBy: { createdBy: -1 },
             },
           },
         },
       },
-      { $sort: { createdAt: -1 } },
       {
         $project: {
           username: "$user.username",
@@ -73,34 +72,27 @@ export async function GET(request: Request) {
       },
     ]);
 
-    if (posts == undefined || posts.length == 0) {
+    if (post == undefined || post.length == 0) {
       return Response.json(
         {
           status: true,
           statusCode: 200,
-          message: `No posts found`,
+          message: `No post found`,
         },
         { status: 200 }
       );
     }
 
-    const updatedPosts = await Promise.all(
-      posts.map(async (post) => {
-        const singleKey = await Promise.all(
-          post.keys.map(async (key: string) => {
-            return {
-              key,
-              ref: await getObjectURL(key),
-            };
-          })
-        );
-
+    let updatedKeys = await Promise.all(
+      post[0].keys.map(async (key: any) => {
         return {
-          ...post,
-          keys: singleKey,
+          key,
+          signedUrl: `await getObjectURL(key)`,
         };
       })
     );
+
+    let dateTime = new Date(post[0].createdAt);
 
     return Response.json(
       {
@@ -108,7 +100,11 @@ export async function GET(request: Request) {
         statusCode: 200,
         message: `All posts found successfully`,
         data: {
-          posts: updatedPosts,
+          postIdData: {
+            ...post[0],
+            keys: updatedKeys,
+            createdAt: `${dateTime.getDate().toString().padStart(2, "0")}-${dateTime.getMonth().toString().padStart(2, "0")}-${dateTime.getFullYear().toString().padStart(2, "0")} ${dateTime.getHours().toString().padStart(2, "0")}:${dateTime.getMinutes().toString().padStart(2, "0")}`,
+          },
         },
       },
       { status: 200 }
