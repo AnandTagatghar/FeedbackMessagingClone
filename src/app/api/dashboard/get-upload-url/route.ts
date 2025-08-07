@@ -46,7 +46,6 @@ export async function GET(req: Request) {
       },
       { status: 200 }
     );
-
   } catch (error: any) {
     return Response.json(
       {

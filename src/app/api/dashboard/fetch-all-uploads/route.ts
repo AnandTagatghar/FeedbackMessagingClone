@@ -46,7 +46,13 @@ export async function GET(request: Request) {
     const updatedPosts = await Promise.all(
       allPosts.map(async (post) => {
         const signedKeys = await Promise.all(
-          post.keys.map(async (key: string) => await getObjectURL(key))
+          post.keys.map(async (obj: { type: string; key: string }) => {
+            return {
+              signedUrl: await getObjectURL(obj.key),
+              key: obj.key,
+              type: obj.type,
+            };
+          })
         );
 
         return {

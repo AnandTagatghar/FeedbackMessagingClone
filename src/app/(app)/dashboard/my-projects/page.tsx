@@ -30,16 +30,13 @@ import z from "zod";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
-  DialogClose,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Form,
   FormControl,
@@ -122,11 +119,12 @@ interface singlePostDataInterface {
   _id: string;
   username: string;
   email: string;
-  keys: { key: string; signedUrl: string }[];
+  keys: { key: string; signedUrl: string; type: string }[];
   isAcceptingMessages: boolean;
   messages: {
     content: string;
     createdAt: string;
+    _id: string;
   }[];
   title: string;
   description: string;
@@ -151,10 +149,10 @@ function SinglePost({ postId }: { postId: string }) {
     setFetchingPostData(true);
     try {
       const result = await axios.get(
-        `/api/dashboard/fetch-my-project-single-post-data?postId=${postId}`
+        `/api/dashboard/fetch-upload-details?postId=${postId}`
       );
 
-      setPostData(result.data.data.postIdData);
+      setPostData(result.data.data);
     } catch (error: any) {
       const axiosError = error as AxiosError<ApiResponse>;
       console.error(
@@ -206,7 +204,7 @@ function SinglePost({ postId }: { postId: string }) {
         throw new Error(`Accepting atleast 1 file`);
       }
 
-      const uploadedKeys: string[] = [];
+      const uploadedKeys: { key: string; type: string }[] = [];
 
       for (let file of Array.from(data.files)) {
         const result = await axios.get(`/api/dashboard/get-upload-url`, {
@@ -224,7 +222,7 @@ function SinglePost({ postId }: { postId: string }) {
           body: file,
         });
 
-        uploadedKeys.push(key);
+        uploadedKeys.push({ key, type: file.type });
       }
 
       await axios.patch("/api/dashboard/add-my-project-files", {
@@ -283,12 +281,12 @@ function SinglePost({ postId }: { postId: string }) {
         await axios.delete(`/api/dashboard/delete-uploaded-key?key=${key}`);
 
         await axios.patch("/api/dashboard/delete-key-from-post", {
-          key: key,
+          key,
           postId,
         });
 
         await axios.patch("/api/dashboard/add-my-project-files", {
-          keys: [fetchedKeyValue],
+          keys: [{ key: fetchedKeyValue, type: file.type }],
           postId: postId,
         });
 
@@ -311,6 +309,25 @@ function SinglePost({ postId }: { postId: string }) {
     },
     []
   );
+
+  const handleDeleteMessage = useCallback(async (messageId: string) => {
+    try {
+      const result = await axios.delete(
+        `/api/dashboard/delete-message?messageId=${messageId}`
+      );
+
+      fetchSinglePostData();
+    } catch (error: any) {
+      const axiosError = error as AxiosError<ApiResponse>;
+
+      toast.error("Failed to delete message", {
+        description:
+          axiosError.response?.data.message ||
+          error.message ||
+          "Something went wrong",
+      });
+    }
+  }, []);
 
   return (
     <>
@@ -374,6 +391,7 @@ function SinglePost({ postId }: { postId: string }) {
                   imgRef={obj.signedUrl}
                   keyValue={obj.key}
                   postId={postId}
+                  imgType={obj.type}
                   handleDeleteKey={handleDeleteKey}
                   handleEditKey={handleEditKey}
                   isEditSubmitting={isEditSubmitting}
@@ -389,6 +407,36 @@ function SinglePost({ postId }: { postId: string }) {
               postId={postId}
             />
           </div>
+
+          {postData && postData.messages.length > 0 ? (
+            <>
+              <h1 className="text-xl text-secondaryText py-10 text-center">
+                Please find project messages below
+              </h1>
+              <div className="w-full h-[20rem] flex flex-col gap-3 overflow-auto">
+                {postData.messages.map((message, index) => {
+                  return (
+                    <MessageCard
+                      message={{
+                        createdAt: message.createdAt,
+                        content: message.content,
+                        messageId: message._id,
+                      }}
+                      key={index}
+                      handleDeleteMessage={handleDeleteMessage}
+                      postId={postData._id}
+                    />
+                  );
+                })}
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="text-xl text-secondaryText py-10 text-center">
+                No messages on this project
+              </p>
+            </>
+          )}
         </div>
       )}
     </>
@@ -399,6 +447,7 @@ function ImageCard({
   imgRef,
   keyValue,
   postId,
+  imgType,
   handleDeleteKey,
   handleEditKey,
   isEditSubmitting,
@@ -406,6 +455,7 @@ function ImageCard({
   imgRef: string;
   keyValue: string;
   postId: string;
+  imgType: string;
   handleDeleteKey: (key: string, postId: string) => void;
   handleEditKey: (
     values: z.infer<typeof editFileSchema>,
@@ -425,11 +475,23 @@ function ImageCard({
     <>
       <HoverCard>
         <HoverCardTrigger asChild>
-          <img
-            src={imgRef}
-            alt={keyValue}
-            className="w-[18rem] h-[18rem] cover-object rounded-lg"
-          />
+          {imgType.includes("image") ? (
+            <img
+              src={imgRef}
+              alt={keyValue}
+              className="w-[18rem] h-[18rem] cover-object rounded-lg"
+            />
+          ) : (
+            <video
+              className="w-[18rem] h-[18rem] object-cover rounded-lg"
+              src={imgRef}
+              autoPlay
+              loop
+              muted
+              controls
+              controlsList="nodownload"
+            />
+          )}
         </HoverCardTrigger>
 
         <HoverCardContent className="flex gap-3 w-[6rem]">
@@ -458,7 +520,7 @@ function ImageCard({
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
                 <AlertDialogAction
-                  onClick={(e) => {
+                  onClick={() => {
                     handleDeleteKey(keyValue, postId);
                   }}
                 >
@@ -616,6 +678,63 @@ function AddFilesAction({
   );
 }
 
-function MessageCard(){
-  return <>This is a message one</>
+function MessageCard({
+  message,
+  handleDeleteMessage,
+}: {
+  message: {
+    createdAt: string;
+    content: string;
+    messageId: string;
+  };
+  postId: string;
+  handleDeleteMessage: (messageId: string) => void;
+}) {
+  let date = new Date(message.createdAt);
+  let displayDate = `${date.getDate()}-${date.getMonth().toString().padStart(2, "0")}-${date.getFullYear()} ${date.getHours().toString().padStart(2, ")")}:${date.getMinutes().toString().padStart(2, "0")}`;
+
+  return (
+    <>
+      <HoverCard>
+        <HoverCardTrigger asChild>
+          <div className="w-full py-4 rounded-lg bg-cardColor p-4">
+            <p className="text-secondaryText text-sm">{displayDate}</p>
+            <p className="text-primaryText mt-4">{message.content}</p>
+          </div>
+        </HoverCardTrigger>
+
+        <HoverCardContent
+          className="w-[2rem]"
+          side="top"
+          align="end"
+          sideOffset={8}
+        >
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Trash2 className="hover:cursor-pointer hover:opacity-75 active:opacity-50" />
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This action cannot be undone. This will permanently delete
+                  this message and remove message data from our servers.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => {
+                    handleDeleteMessage(message.messageId);
+                  }}
+                >
+                  Yes, plese delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </HoverCardContent>
+      </HoverCard>
+    </>
+  );
 }

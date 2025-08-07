@@ -43,7 +43,7 @@ export async function PATCH(request: Request) {
         _id: postId,
       },
       {
-        $pull: { keys: key },
+        $pull: { keys: { key } },
       }
     );
 

@@ -35,7 +35,12 @@ export const UploadsSchema: Schema<UploadsSchemaInterface> =
     ],
     keys: [
       {
-        type: String,
+        key: {
+          type: String,
+        },
+        type: {
+          type: String,
+        },
       },
     ],
     createdAt: {

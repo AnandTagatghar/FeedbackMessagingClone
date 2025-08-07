@@ -87,8 +87,22 @@ export const authOptions: NextAuthOptions = {
 
       return true;
     },
-    async jwt({ token, user }) {
-      if (user) {
+    async jwt({ token, user, account }) {
+      await dbConnect();
+
+      if (account?.provider == "google") {
+        const dbUser = await UserModel.findOne({
+          email: token.email,
+          provider: "google",
+        });
+
+        if (dbUser) {
+          token._id = dbUser._id;
+          token.username = dbUser.username;
+          token.isAcceptingMessages = dbUser.isAcceptingMessages;
+          token.isVerified = dbUser.isVerified;
+        }
+      } else if (user) {
         token._id = user._id;
         token.username = user.username;
         token.isAcceptingMessages = user.isAcceptingMessages;

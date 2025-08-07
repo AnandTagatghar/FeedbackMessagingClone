@@ -46,9 +46,12 @@ const UploadPage = () => {
       const uploadedUrls = [];
 
       for (let file of values.files) {
-        const response = await axios.get(
-          `/api/dashboard/get-upload-url?fileName=${file.name}&fileType=${file.type}`
-        );
+        const response = await axios.get(`/api/dashboard/get-upload-url`, {
+          params: {
+            fileName: file.name,
+            fileType: file.type,
+          },
+        });
 
         const { signedUrl, key } = response.data.data;
 
@@ -58,7 +61,7 @@ const UploadPage = () => {
           body: file,
         });
 
-        uploadedUrls.push(key);
+        uploadedUrls.push({ key, type: file.type });
       }
 
       const result = await axios.post("/api/dashboard/upload-post", {

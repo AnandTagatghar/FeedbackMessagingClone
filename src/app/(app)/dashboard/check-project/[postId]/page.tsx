@@ -25,7 +25,7 @@ interface postDataInterface {
   _id: string;
   username: string;
   email: string;
-  keys: string[];
+  keys: { signedUrl: string; key: string; type: string }[];
   isAcceptingMessages: boolean;
   messages: {
     content: string;
@@ -122,11 +122,13 @@ export default function checkProjectPage() {
               <span className="text-secondaryText">Title: </span>
               {postData.title}
             </h2>
+
             <h2 className="text-md ">
               <span className="text-secondaryText">Description: </span>
               <br />
               {postData.description}
             </h2>
+
             {postData.githubLink ? (
               <h2 className="text-md ">
                 <span className="text-secondaryText">Github Link: </span>
@@ -136,6 +138,7 @@ export default function checkProjectPage() {
             ) : (
               ""
             )}
+
             {postData.projectLink ? (
               <h2 className="text-md ">
                 <span className="text-secondaryText">Project Link: </span>
@@ -147,16 +150,30 @@ export default function checkProjectPage() {
             )}
 
             <div className="w-full flex flex-wrap gap-3 mt-10">
-              {postData.keys.map((ref, index) => {
-                return (
-                  <img
-                    key={index}
-                    src={ref}
-                    alt={postData.title}
-                    className="w-[18rem] h-[18rem] cover-object rounded-lg"
-                  />
-                );
-              })}
+              {postData.keys.map((imageObj, index) => (
+                <>
+                  {imageObj && imageObj.type.includes("image") && (
+                    <img
+                      key={index}
+                      src={imageObj.signedUrl}
+                      alt={imageObj.key}
+                      className="w-[18rem] h-[18rem] cover-object rounded-lg"
+                    />
+                  )}
+
+                  {imageObj && imageObj.type.includes("video") && (
+                    <video
+                      className="w-[18rem] h-[18rem] rounded-lg object-cover"
+                      src={imageObj.signedUrl}
+                      autoPlay
+                      loop
+                      muted
+                      controls
+                      controlsList="nodownload"
+                    />
+                  )}
+                </>
+              ))}
             </div>
 
             <Form {...form}>

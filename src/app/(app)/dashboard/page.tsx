@@ -61,7 +61,9 @@ const dashboardPage = () => {
       <div className="p-10 bg-backgroundPrimary w-full h-full flex flex-col items-center">
         {cardsData.length > 0 ? (
           <>
-            <h2 className="text-primaryText font-bold self-start py-5 text-2xl sm:text-3xl md:text-4xl">Below are fetched project&apos;s you can review:</h2>
+            <h2 className="text-primaryText font-bold self-start py-5 text-2xl sm:text-3xl md:text-4xl">
+              Below are fetched project&apos;s you can review:
+            </h2>
             {cardsData.map((cardData, i) => {
               return <DashboardCard key={i} userData={cardData} />;
             })}

@@ -1,4 +1,5 @@
 import { model, Model, models, Schema, Types } from "mongoose";
+import Uploads from "./UploadModel";
 
 export interface MessageSchemaInterface extends Document {
   content: string;
@@ -22,6 +23,24 @@ export const MessageSchema: Schema<MessageSchemaInterface> =
       default: Date.now,
     },
   });
+
+MessageSchema.post("findOneAndDelete", async function (doc) {
+  if (doc) {
+    try {
+      await Uploads.updateMany(
+        {
+          messages: doc._id,
+        },
+        {
+          $pull: { messages: doc._id },
+        }
+      );
+      console.log(`Success delete`);
+    } catch (error: any) {
+      console.log(`Error: ${error.message}`);
+    }
+  }
+});
 
 export const Messages =
   (models.messages as Model<MessageSchemaInterface>) ||

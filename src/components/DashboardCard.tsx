@@ -25,7 +25,7 @@ interface cardDataType {
   _id: string;
   userId: string;
   createdAt: Date;
-  keys: string[];
+  keys: { signedUrl: string; key: string; type: string }[];
 }
 
 const DashboardCard = ({ userData }: { userData: cardDataType }) => {
@@ -45,16 +45,30 @@ const DashboardCard = ({ userData }: { userData: cardDataType }) => {
         {userData.keys.length > 0 && (
           <Carousel className="w-full max-w-xs ml-10 h-[25rem]">
             <CarouselContent>
-              {userData.keys.map((ref, index) => (
+              {userData.keys.map((obj, index) => (
                 <CarouselItem key={index}>
                   <div className="p-1">
                     <Card>
                       <CardContent className="flex aspect-square items-center justify-center p-6 w-full h-full">
-                        <img
-                          src={ref}
-                          alt={userData.title}
-                          className="w-full h-full cover-object rounded"
-                        />
+                        {obj && obj.type.includes("image") && (
+                          <img
+                            src={obj.signedUrl}
+                            alt={obj.key}
+                            className="w-full h-full cover-object rounded"
+                          />
+                        )}
+
+                        {obj && obj.type.includes("video") && (
+                          <video
+                            className="w-full h-full object-cover"
+                            src={obj.signedUrl}
+                            autoPlay
+                            loop
+                            muted
+                            controls
+                            controlsList="nodownload"
+                          />
+                        )}
                       </CardContent>
                     </Card>
                   </div>
