@@ -25,7 +25,7 @@ export const InfiniteMovingCards = ({
 
   const [start, setStart] = useState(false);
 
-  const getDirection = () => {
+  const getDirection = useCallback(() => {
     if (containerRef.current) {
       if (direction === "left") {
         containerRef.current.style.setProperty(
@@ -39,8 +39,9 @@ export const InfiniteMovingCards = ({
         );
       }
     }
-  };
-  const getSpeed = () => {
+  }, [containerRef, direction]);
+
+  const getSpeed = useCallback(() => {
     if (containerRef.current) {
       if (speed === "fast") {
         containerRef.current.style.setProperty("--animation-duration", "20s");
@@ -50,7 +51,7 @@ export const InfiniteMovingCards = ({
         containerRef.current.style.setProperty("--animation-duration", "100s");
       }
     }
-  };
+  }, [containerRef, speed]);
 
   const addAnimation = useCallback(() => {
     if (containerRef.current && scrollerRef.current) {
