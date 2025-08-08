@@ -70,10 +70,9 @@ export const UserSchema: Schema<UsernameSchemaInterface> =
   });
 
 UserSchema.pre("save", async function (next) {
-  const user = this;
-  if (!user.isModified("password")) return next();
+  if (!this.isModified("password")) return next();
 
-  user.password = await bcrypt.hash(user.password, 10);
+  this.password = await bcrypt.hash(this.password, 10);
   next();
 });
 

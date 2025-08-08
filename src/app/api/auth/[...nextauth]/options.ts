@@ -5,6 +5,7 @@ import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import verificationCodeDetails from "@/utils/generateVerificationDetails";
 import GoogleProvider from "next-auth/providers/google";
+import type { User } from "next-auth";
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -15,9 +16,16 @@ export const authOptions: NextAuthOptions = {
         identifier: { label: "Identifier", type: "email" },
         password: { label: "Password", type: "password" },
       },
-      async authorize(credentials): Promise<any> {
+      async authorize(credentials): Promise<User | null> {
         try {
           await dbConnect();
+
+          if (
+            credentials?.identifier == undefined ||
+            credentials?.password == undefined
+          ) {
+            throw new Error(`Please provide required values`);
+          }
 
           const user = await UserModel.findOne({
             $or: [
@@ -31,13 +39,16 @@ export const authOptions: NextAuthOptions = {
           const { verifyCode, verifyCodeExpiry } = verificationCodeDetails;
 
           if (!user.isVerified) {
-            process.env.NODE_ENV == "development"
-              ? ""
-              : await sendVerificationCodeEmail(
-                  credentials?.identifier!,
-                  verifyCode,
-                  user.email
-                );
+            if (
+              process.env.NODE_ENV !== "development" &&
+              credentials.identifier
+            ) {
+              await sendVerificationCodeEmail(
+                credentials.identifier,
+                verifyCode,
+                user.email
+              );
+            }
 
             user.verifyCode = verifyCode;
             user.verifyCodeExpiry = verifyCodeExpiry;
@@ -46,15 +57,28 @@ export const authOptions: NextAuthOptions = {
             throw new Error(`Please verify your email, otp send to your email`);
           }
 
-          const isValid = await user.isPasswordCorrect(credentials?.password!);
+          let isValid;
+          if (credentials.password) {
+            isValid = await user.isPasswordCorrect(credentials.password);
+          } else {
+            throw new Error(`Please provide password value`);
+          }
 
           if (isValid) {
-            return user;
+            return {
+              id: user._id.toString(),
+              _id: user._id.toString(),
+              username: user.username,
+              isAcceptingMessages: user.isAcceptingMessages,
+              isVerified: user.isVerified,
+            };
           } else {
             throw new Error(`Invalid credentials`);
           }
-        } catch (error: any) {
-          throw new Error(error.message || `Error on authorize`);
+        } catch (error: unknown) {
+          throw new Error(
+            error instanceof Error ? error.message : `Error on authorize`
+          );
         }
       },
     }),

@@ -42,7 +42,7 @@ export async function GET(request: Request) {
           status: true,
           statusCode: 200,
           message: `No posts found`,
-          data: {postsId:[]}
+          data: { postsId: [] },
         },
         { status: 200 }
       );
@@ -59,12 +59,15 @@ export async function GET(request: Request) {
       },
       { status: 200 }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     return Response.json(
       {
         status: false,
         statusCode: 500,
-        message: error.message || `Error on get-my-projects route`,
+        message:
+          error instanceof Error
+            ? error.message
+            : `Error on get-my-projects route`,
       },
       { status: 500 }
     );

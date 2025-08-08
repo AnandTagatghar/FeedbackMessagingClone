@@ -111,12 +111,13 @@ export async function GET(request: Request) {
       message: "Posts fetched successfully",
       data: updatedPosts[0],
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     return Response.json(
       {
         status: false,
         statusCode: 500,
-        message: error.message || `Error on fetch all uploads`,
+        message:
+          error instanceof Error ? error.message : `Error on fetch all uploads`,
       },
       { status: 500 }
     );

@@ -1,7 +1,7 @@
 import dbConnect from "@/lib/dbConnect";
 import { Messages } from "@/models/MessageModel";
 import Uploads from "@/models/UploadModel";
-import mongoose, { Schema } from "mongoose";
+import mongoose from "mongoose";
 
 export async function POST(request: Request) {
   try {
@@ -151,12 +151,15 @@ export async function POST(request: Request) {
       },
       { status: 200 }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     return Response.json(
       {
         status: false,
         statusCode: 500,
-        message: error.message || `Error on send message controller.`,
+        message:
+          error instanceof Error
+            ? error.message
+            : `Error on send message controller.`,
       },
       { status: 500 }
     );

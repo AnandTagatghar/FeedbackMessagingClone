@@ -52,12 +52,15 @@ export async function PATCH(request: Request) {
       statusCode: 200,
       message: `Delete key success`,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     return Response.json(
       {
         status: false,
         statusCode: 500,
-        message: error.message || `Error on delete-key-from-post route`,
+        message:
+          error instanceof Error
+            ? error.message
+            : `Error on delete-key-from-post route`,
       },
       { status: 500 }
     );

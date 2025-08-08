@@ -25,7 +25,7 @@ import { Loader2 } from "lucide-react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 
-const signInPage = () => {
+const SignInPage = () => {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [isSubmittingGoogleButton, setIsSubmittingGoogleButton] =
@@ -60,7 +60,7 @@ const signInPage = () => {
         form.resetField("identifier");
         form.resetField("password");
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(`Error on login: ${error}`);
 
       const axiosError = error as AxiosError<ApiResponse>;
@@ -68,8 +68,7 @@ const signInPage = () => {
       toast.error(`Login Failed`, {
         description:
           axiosError.response?.data.message ||
-          error.message ||
-          `Something went wrong`,
+          (error instanceof Error ? error.message : `Something went wrong`),
       });
 
       form.resetField("identifier");
@@ -85,11 +84,12 @@ const signInPage = () => {
       await signIn("google", { callbackUrl: "/dashboard" });
 
       toast.success("Login success using google");
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(`Error on login: ${error}`);
 
       toast.error(`Login failed using google`, {
-        description: error.message || `Something went wrong`,
+        description:
+          error instanceof Error ? error.message : `Something went wrong`,
       });
     } finally {
       setIsSubmittingGoogleButton(false);
@@ -208,4 +208,4 @@ const signInPage = () => {
   );
 };
 
-export default signInPage;
+export default SignInPage;

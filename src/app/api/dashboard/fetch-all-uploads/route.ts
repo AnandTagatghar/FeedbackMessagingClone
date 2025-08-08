@@ -2,7 +2,7 @@ import dbConnect from "@/lib/dbConnect";
 import Uploads from "@/models/UploadModel";
 import { getObjectURL } from "@/utils/s3Features";
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
     await dbConnect();
     const allPosts = await Uploads.aggregate([
@@ -68,12 +68,13 @@ export async function GET(request: Request) {
       message: "Posts fetched successfully",
       data: updatedPosts,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     return Response.json(
       {
         status: false,
         statusCode: 500,
-        message: error.message || `Error on fetch all uploads`,
+        message:
+          error instanceof Error ? error.message : `Error on fetch all uploads`,
       },
       { status: 500 }
     );

@@ -3,7 +3,7 @@
 import { ApiResponse } from "@/types/ApiResponse";
 import axios, { AxiosError } from "axios";
 import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
 import { useSession } from "next-auth/react";
+import Image from "next/image";
 
 interface postDataInterface {
   _id: string;
@@ -37,7 +38,7 @@ interface postDataInterface {
   projectLink?: string;
 }
 
-export default function checkProjectPage() {
+export default function CheckProjectPage() {
   const { data: session } = useSession();
   const user = session?.user;
   const params = useParams();
@@ -48,7 +49,7 @@ export default function checkProjectPage() {
   );
   const [fetching, setFetching] = useState<boolean>(false);
 
-  async function fetchPost() {
+  const fetchPost = useCallback(async () => {
     setFetching(true);
     try {
       const result = await axios.get(
@@ -56,23 +57,22 @@ export default function checkProjectPage() {
       );
 
       setPostData(result.data.data);
-    } catch (error: any) {
+    } catch (error: unknown) {
       const axiosError = error as AxiosError<ApiResponse>;
 
       toast.error("Fetch post failed", {
         description:
           axiosError.response?.data.message ||
-          error.message ||
-          `Something went wrong`,
+          (error instanceof Error ? error.message : "Something went wrong"),
       });
     } finally {
       setFetching(false);
     }
-  }
+  }, [postId]);
 
   useEffect(() => {
     fetchPost();
-  }, []);
+  }, [fetchPost]);
 
   const form = useForm<z.infer<typeof sendMessageSchema>>({
     resolver: zodResolver(sendMessageSchema),
@@ -83,7 +83,7 @@ export default function checkProjectPage() {
 
   async function onSubmit(values: z.infer<typeof sendMessageSchema>) {
     try {
-      const result = await axios.post(`/api/dashboard/send-message`, {
+      await axios.post(`/api/dashboard/send-message`, {
         content: values.message,
         postId: postId,
         userId: user._id,
@@ -94,14 +94,13 @@ export default function checkProjectPage() {
       form.resetField("message");
 
       fetchPost();
-    } catch (error: any) {
+    } catch (error: unknown) {
       const axiosError = error as AxiosError<ApiResponse>;
 
       toast.error("Failed to send message", {
         description:
           axiosError.response?.data.message ||
-          error.message ||
-          `Something went wrong`,
+          (error instanceof Error ? error.message : `Something went wrong)`),
       });
 
       form.resetField("message");
@@ -151,14 +150,16 @@ export default function checkProjectPage() {
 
             <div className="w-full flex flex-wrap gap-3 mt-10">
               {postData.keys.map((imageObj, index) => (
-                <>
+                <div key={index}>
                   {imageObj && imageObj.type.includes("image") && (
-                    <img
-                      key={index}
-                      src={imageObj.signedUrl}
-                      alt={imageObj.key}
-                      className="w-[18rem] h-[18rem] cover-object rounded-lg"
-                    />
+                    <div className="w-[18rem] h-[18rem] relative">
+                      <Image
+                        src={imageObj.signedUrl}
+                        alt={imageObj.key}
+                        className="cover-object rounded-lg"
+                        fill
+                      />
+                    </div>
                   )}
 
                   {imageObj && imageObj.type.includes("video") && (
@@ -172,7 +173,7 @@ export default function checkProjectPage() {
                       controlsList="nodownload"
                     />
                   )}
-                </>
+                </div>
               ))}
             </div>
 
@@ -227,8 +228,8 @@ export default function checkProjectPage() {
                 </h1>
                 <div className="w-full h-[20rem] flex flex-col gap-3 overflow-auto">
                   {postData.messages.map((message, index) => {
-                    let date = new Date(message.createdAt);
-                    let displayDate = `${date.getDate()}-${date.getMonth().toString().padStart(2, "0")}-${date.getFullYear()} ${date.getHours().toString().padStart(2, ")")}:${date.getMinutes().toString().padStart(2, "0")}`;
+                    const date = new Date(message.createdAt);
+                    const displayDate = `${date.getDate()}-${date.getMonth().toString().padStart(2, "0")}-${date.getFullYear()} ${date.getHours().toString().padStart(2, ")")}:${date.getMinutes().toString().padStart(2, "0")}`;
 
                     return (
                       <div

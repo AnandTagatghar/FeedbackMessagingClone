@@ -44,12 +44,15 @@ export async function GET(req: NextRequest) {
         { status: 409 }
       );
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     return NextResponse.json(
       {
         status: false,
         statusCode: 500,
-        message: error.message || `Error on check unique username controller`,
+        message:
+          error instanceof Error
+            ? error.message
+            : `Error on check unique username controller`,
       },
       { status: 500 }
     );

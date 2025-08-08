@@ -16,6 +16,7 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
+import Image from "next/image";
 
 interface cardDataType {
   title: string;
@@ -51,11 +52,14 @@ const DashboardCard = ({ userData }: { userData: cardDataType }) => {
                     <Card>
                       <CardContent className="flex aspect-square items-center justify-center p-6 w-full h-full">
                         {obj && obj.type.includes("image") && (
-                          <img
-                            src={obj.signedUrl}
-                            alt={obj.key}
-                            className="w-full h-full cover-object rounded"
-                          />
+                          <div className="w-full h-full relative">
+                            <Image
+                              src={obj.signedUrl}
+                              alt={obj.key}
+                              className="object-cover rounded"
+                              fill
+                            />
+                          </div>
                         )}
 
                         {obj && obj.type.includes("video") && (

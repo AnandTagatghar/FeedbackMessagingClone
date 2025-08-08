@@ -36,8 +36,10 @@ MessageSchema.post("findOneAndDelete", async function (doc) {
         }
       );
       console.log(`Success delete`);
-    } catch (error: any) {
-      console.log(`Error: ${error.message}`);
+    } catch (error: unknown) {
+      console.log(
+        `Error: ${error instanceof Error ? error.message : "Something went wrong"}`
+      );
     }
   }
 });

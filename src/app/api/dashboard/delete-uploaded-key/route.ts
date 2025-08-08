@@ -26,12 +26,15 @@ export async function DELETE(request: Request) {
       },
       { status: 200 }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     return Response.json(
       {
         status: false,
         statusCode: 500,
-        message: error.message || `Error on delete-uploaded-kye router`,
+        message:
+          error instanceof Error
+            ? error.message
+            : `Error on delete-uploaded-kye router`,
       },
       { status: 500 }
     );

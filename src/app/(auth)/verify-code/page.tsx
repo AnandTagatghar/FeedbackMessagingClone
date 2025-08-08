@@ -26,7 +26,7 @@ import {
   InputOTPSlot,
 } from "@/components/ui/input-otp";
 
-const verifyCodePage = () => {
+const VerifyCodePage = () => {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
@@ -52,14 +52,13 @@ const verifyCodePage = () => {
       });
 
       router.replace("/sign-in");
-    } catch (error: any) {
+    } catch (error: unknown) {
       const axiosError = error as AxiosError<ApiResponse>;
 
       toast.error(`Verify email failed`, {
         description:
           axiosError.response?.data.message ||
-          error.message ||
-          `Something went wrong`,
+          (error instanceof Error ? error.message : `Something went wrong`),
       });
 
       form.resetField("verifyCode");
@@ -136,4 +135,4 @@ const verifyCodePage = () => {
   );
 };
 
-export default verifyCodePage;
+export default VerifyCodePage;

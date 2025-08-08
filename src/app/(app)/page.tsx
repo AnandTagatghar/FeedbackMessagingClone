@@ -14,6 +14,7 @@ import data from "@/data/homePageCarouselData.json";
 import { InfiniteMovingCards } from "@/components/ui/infinite-moving-cards";
 import infiniteCardsData from "@/data/homePageInfiniteCards.json";
 import Footer from "@/components/Footer";
+import Image from "next/image";
 
 export default function Home() {
   const [api, setApi] = React.useState<CarouselApi>();
@@ -56,11 +57,15 @@ export default function Home() {
                         {singleData.title}
                       </CardTitle>
                       <CardContent className="flex aspect-square items-center justify-center p-6">
-                        <img
-                          src={singleData.image}
-                          alt={singleData.title}
-                          className="w-full h-full object-cover"
-                        />
+                        <div className="relative w-full h-full rounded">
+                          <Image
+                            src={singleData.image}
+                            alt={singleData.title}
+                            className="w-full h-full object-cover rounded"
+                            layout="fill"
+                            objectFit="cover"
+                          />
+                        </div>
                       </CardContent>
                       <CardFooter className="text-secondaryText">
                         {singleData.description}

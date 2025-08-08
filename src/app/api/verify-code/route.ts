@@ -89,12 +89,15 @@ export async function POST(request: Request) {
       },
       { status: 200 }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     return Response.json(
       {
         status: false,
         statusCode: 500,
-        message: error.message || `Error on sign up controller`,
+        message:
+          error instanceof Error
+            ? error.message
+            : `Error on sign up controller`,
       },
       { status: 500 }
     );

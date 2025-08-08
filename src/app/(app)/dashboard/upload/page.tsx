@@ -45,7 +45,7 @@ const UploadPage = () => {
 
       const uploadedUrls = [];
 
-      for (let file of values.files) {
+      for (const file of values.files) {
         const response = await axios.get(`/api/dashboard/get-upload-url`, {
           params: {
             fileName: file.name,
@@ -77,14 +77,13 @@ const UploadPage = () => {
       });
 
       router.replace("/dashboard");
-    } catch (error: any) {
+    } catch (error: unknown) {
       const axiosError = error as AxiosError<ApiResponse>;
 
       toast.error("Upload post failed", {
         description:
           axiosError?.response?.data.message ||
-          error.message ||
-          `Something went wrong`,
+          (error instanceof Error ? error.message : `Something went wrong`),
       });
 
       form.resetField("title");

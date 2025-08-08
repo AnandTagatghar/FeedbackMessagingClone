@@ -14,7 +14,11 @@ export default async function sendVerificationCodeEmail(
       subject: `Verification Code | ${brand_name}`,
       react: VerificationCodeEmail({ username, otp }),
     });
-  } catch (error: any) {
-    throw new Error(error.message || `Error sending varification code email`);
+  } catch (error: unknown) {
+    throw new Error(
+      error instanceof Error
+        ? error.message
+        : `Error sending varification code email`
+    );
   }
 }

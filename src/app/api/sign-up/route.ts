@@ -66,9 +66,9 @@ export async function POST(request: Request) {
         { status: 409 }
       );
     } else if (checkForUser && !checkForUser.isVerified) {
-      process.env.NODE_ENV == "development"
-        ? ""
-        : await sendVerificationCodeEmail(username, verifyCode, email);
+      if (process.env.NODE_ENV !== "development") {
+        await sendVerificationCodeEmail(username, verifyCode, email);
+      }
 
       checkForUser.verifyCode = verifyCode;
       checkForUser.verifyCodeExpiry = verifyCodeExpiry;
@@ -89,9 +89,9 @@ export async function POST(request: Request) {
         password,
       });
 
-      process.env.NODE_ENV == "development"
-        ? ""
-        : await sendVerificationCodeEmail(username, verifyCode, email);
+      if (process.env.NODE_ENV !== "development") {
+        await sendVerificationCodeEmail(username, verifyCode, email);
+      }
 
       newUser.verifyCode = verifyCode;
       newUser.verifyCodeExpiry = verifyCodeExpiry;
@@ -106,12 +106,15 @@ export async function POST(request: Request) {
         { status: 202 }
       );
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     return Response.json(
       {
         status: false,
         statusCode: 500,
-        message: error.message || `Error on sign up controller`,
+        message:
+          error instanceof Error
+            ? error.message
+            : `Error on sign up controller`,
       },
       { status: 500 }
     );

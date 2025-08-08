@@ -46,12 +46,15 @@ export async function GET(req: Request) {
       },
       { status: 200 }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     return Response.json(
       {
         status: false,
         statusCode: 500,
-        message: error.message || `Error at get upload url controller`,
+        message:
+          error instanceof Error
+            ? error.message
+            : `Error at get upload url controller`,
       },
       { status: 500 }
     );

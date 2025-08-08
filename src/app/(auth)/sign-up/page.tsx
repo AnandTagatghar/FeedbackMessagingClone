@@ -24,7 +24,7 @@ import { signUpSchema } from "@/schemas/signUpSchema";
 import axios from "axios";
 import { useDebounceValue } from "usehooks-ts";
 
-const signUpPage = () => {
+const SignUpPage = () => {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [username, setUsername] = useDebounceValue("", 500);
@@ -42,7 +42,7 @@ const signUpPage = () => {
           );
 
           setUsernameMessage(result.data.message);
-        } catch (error: any) {
+        } catch (error: unknown) {
           const axiosError = error as AxiosError<ApiResponse>;
           setUsernameMessage(
             axiosError.response?.data.message ?? `Username is not unique`
@@ -79,7 +79,7 @@ const signUpPage = () => {
       toast.success("Sign up process done, please verify you email");
 
       router.replace(`/verify-code?username=${form.getValues("username")}`);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(`Error on login: ${error}`);
 
       const axiosError = error as AxiosError<ApiResponse>;
@@ -87,8 +87,7 @@ const signUpPage = () => {
       toast.error(`Sign-Up Failed`, {
         description:
           axiosError.response?.data.message ||
-          error.message ||
-          `Something went wrong`,
+          (error instanceof Error ? error.message : `Something went wrong`),
       });
 
       form.resetField("email");
@@ -212,4 +211,4 @@ const signUpPage = () => {
   );
 };
 
-export default signUpPage;
+export default SignUpPage;

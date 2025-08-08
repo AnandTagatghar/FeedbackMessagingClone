@@ -47,12 +47,15 @@ export async function PATCH(request: Request) {
       statusCode: 200,
       message: `File upload success`,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     return Response.json(
       {
         status: false,
         statusCode: 500,
-        message: error.message || `Error on add-my-projects-fiels router`,
+        message:
+          error instanceof Error
+            ? error.message
+            : `Error on add-my-projects-fiels router`,
       },
       {
         status: 500,

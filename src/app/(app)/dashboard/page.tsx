@@ -1,7 +1,7 @@
 "use client";
 
 import { AuroraBackground } from "@/components/ui/aurora-background";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { motion } from "motion/react";
 import Link from "next/link";
 import axios, { AxiosError } from "axios";
@@ -9,26 +9,26 @@ import { ApiResponse } from "@/types/ApiResponse";
 import { toast } from "sonner";
 import DashboardCard from "@/components/DashboardCard";
 
-const dashboardPage = () => {
+const DashboardPage = () => {
   const [cardsData, setCardsData] = useState([]);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     if (cardsData.length == 0) {
       try {
         const result = await axios.get("/api/dashboard/fetch-all-uploads");
 
         setCardsData(result.data.data);
         toast.success("Uploads fetched successfully");
-      } catch (error: any) {
+      } catch (error: unknown) {
         const axiosError = error as AxiosError<ApiResponse>;
         console.error(axiosError.response?.data);
       }
     }
-  };
+  }, [cardsData.length]);
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [fetchData]);
 
   return (
     <div className="min-w-full min-h-full bg-backgroundPrimary">
@@ -80,4 +80,4 @@ const dashboardPage = () => {
   );
 };
 
-export default dashboardPage;
+export default DashboardPage;

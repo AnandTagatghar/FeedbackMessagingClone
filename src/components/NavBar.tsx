@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Button } from "./ui/button";
 import { brand_name } from "@/utils/constants";
 import { signOut, useSession } from "next-auth/react";
@@ -38,7 +38,7 @@ const NavBar = () => {
 
   const acceptingMessages = watch("isAcceptingMessages");
 
-  async function fetchSwitchFromApi() {
+  const fetchSwitchFromApi = useCallback(async () => {
     setIsFetchingSwitch(true);
     try {
       const result = await axios.get(
@@ -46,19 +46,18 @@ const NavBar = () => {
       );
 
       setValue("isAcceptingMessages", result.data.data.isAcceptingMessages);
-    } catch (error: any) {
+    } catch (error: unknown) {
       const axiosError = error as AxiosError<ApiResponse>;
 
       toast.error("Failed to fetch accepting messages details", {
         description:
           axiosError.response?.data.message ||
-          error.message ||
-          `Something went wrong`,
+          (error instanceof Error ? error.message : `Something went wrong`),
       });
     } finally {
       setIsFetchingSwitch(false);
     }
-  }
+  }, [setValue, user]);
 
   async function handleSwitch() {
     setIsFetchingSwitch(true);
@@ -72,14 +71,13 @@ const NavBar = () => {
 
       setValue("isAcceptingMessages", !acceptingMessages);
       window.location.reload();
-    } catch (error: any) {
+    } catch (error: unknown) {
       const axiosError = error as AxiosError<ApiResponse>;
 
       toast.error("Failed to update swtich value", {
         description:
           axiosError.response?.data.message ||
-          error.message ||
-          `Something went wrong`,
+          (error instanceof Error ? error.message : `Something went wrong`),
       });
     } finally {
       setIsFetchingSwitch(false);
@@ -92,7 +90,7 @@ const NavBar = () => {
     }
 
     fetchSwitchFromApi();
-  }, [acceptingMessages, user]);
+  }, [acceptingMessages, user, fetchSwitchFromApi]);
 
   return (
     <div className="w-full h-30 bg-cardColor flex justify-between items-center">

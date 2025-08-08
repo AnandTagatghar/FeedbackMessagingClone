@@ -45,12 +45,13 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { addFilesToPostSchema } from "@/schemas/addFilesToPostSchema";
+import Image from "next/image";
 
 interface allPostsIdsInterface {
   _id: string;
 }
 
-export default function myProjectPage() {
+export default function MyProjectPage() {
   const { data: session } = useSession();
   const user = session?.user;
 
@@ -58,7 +59,7 @@ export default function myProjectPage() {
   const [fetchingAllPostsIds, setFetchingAllPostsIds] =
     useState<boolean>(false);
 
-  async function fetchPostsIds() {
+  const fetchPostsIds = useCallback(async () => {
     setFetchingAllPostsIds(true);
     try {
       const result = await axios.get(
@@ -66,23 +67,22 @@ export default function myProjectPage() {
       );
 
       setPostIds(result.data.data.postsId);
-    } catch (error: any) {
+    } catch (error: unknown) {
       const axiosError = error as AxiosError<ApiResponse>;
 
       toast.error("Failed to load posts", {
         description:
           axiosError.response?.data.message ||
-          error.message ||
-          `Something went wrong`,
+          (error instanceof Error ? error.message : `Something went wrong`),
       });
     } finally {
       setFetchingAllPostsIds(false);
     }
-  }
+  }, [user]);
 
   useEffect(() => {
     fetchPostsIds();
-  }, [user]);
+  }, [user, fetchPostsIds]);
 
   return (
     <div className="min-w-screen min-h-[86vh] bg-backgroundPrimary p-10">
@@ -134,8 +134,6 @@ interface singlePostDataInterface {
 }
 
 function SinglePost({ postId }: { postId: string }) {
-  const [fetchingPostData, setFetchingPostData] = useState<boolean>(false);
-
   const [postData, setPostData] = useState<singlePostDataInterface | null>(
     null
   );
@@ -145,54 +143,53 @@ function SinglePost({ postId }: { postId: string }) {
 
   const [isEditSubmitting, setIsEditSubmitting] = useState<boolean>(false);
 
-  const fetchSinglePostData = async () => {
-    setFetchingPostData(true);
+  const fetchSinglePostData = useCallback(async () => {
     try {
       const result = await axios.get(
         `/api/dashboard/fetch-upload-details?postId=${postId}`
       );
 
       setPostData(result.data.data);
-    } catch (error: any) {
+    } catch (error: unknown) {
       const axiosError = error as AxiosError<ApiResponse>;
       console.error(
-        `Post ID: ${postId}, Error: ${axiosError.response?.data.message || error.message || "Something went wrong"}`
+        `Post ID: ${postId}, Error: ${axiosError.response?.data.message || (error instanceof Error ? error.message : "Something went wrong")}`
       );
-    } finally {
-      setFetchingPostData(false);
     }
-  };
+  }, [postId]);
 
   useEffect(() => {
     fetchSinglePostData();
-  }, [postId]);
+  }, [postId, fetchSinglePostData]);
 
-  const handleDeleteKey = useCallback(async (key: string, postId: string) => {
-    try {
-      await axios.delete(`/api/dashboard/delete-uploaded-key`, {
-        params: {
+  const handleDeleteKey = useCallback(
+    async (key: string, postId: string) => {
+      try {
+        await axios.delete(`/api/dashboard/delete-uploaded-key`, {
+          params: {
+            key,
+          },
+        });
+
+        await axios.patch("/api/dashboard/delete-key-from-post", {
           key,
-        },
-      });
+          postId,
+        });
 
-      await axios.patch("/api/dashboard/delete-key-from-post", {
-        key,
-        postId,
-      });
+        toast.success("Card deleted successfully");
+        fetchSinglePostData();
+      } catch (error: unknown) {
+        const axiosError = error as AxiosError<ApiResponse>;
 
-      toast.success("Card deleted successfully");
-      fetchSinglePostData();
-    } catch (error: any) {
-      const axiosError = error as AxiosError<ApiResponse>;
-
-      toast.error("Deleting card unsuccessful", {
-        description:
-          axiosError.response?.data.message ||
-          error.message ||
-          `Something went wrong`,
-      });
-    }
-  }, []);
+        toast.error("Deleting card unsuccessful", {
+          description:
+            axiosError.response?.data.message ||
+            (error instanceof Error ? error.message : `Something went wrong`),
+        });
+      }
+    },
+    [fetchSinglePostData]
+  );
 
   const handleAddFilesSubmit = async (
     data: z.infer<typeof addFilesToPostSchema>,
@@ -206,7 +203,7 @@ function SinglePost({ postId }: { postId: string }) {
 
       const uploadedKeys: { key: string; type: string }[] = [];
 
-      for (let file of Array.from(data.files)) {
+      for (const file of Array.from(data.files)) {
         const result = await axios.get(`/api/dashboard/get-upload-url`, {
           params: {
             fileType: file.type,
@@ -233,14 +230,13 @@ function SinglePost({ postId }: { postId: string }) {
       toast.success("Upload files success");
 
       fetchSinglePostData();
-    } catch (error: any) {
+    } catch (error: unknown) {
       const axiosError = error as AxiosError<ApiResponse>;
 
       toast.error("Failed to upload Files", {
         description:
           axiosError.response?.data.message ||
-          error.message ||
-          `Something went wrong`,
+          (error instanceof Error ? error.message : `Something went wrong`),
       });
     } finally {
       setIsAddSubmitting(false);
@@ -261,8 +257,8 @@ function SinglePost({ postId }: { postId: string }) {
           throw new Error("Please select file");
         }
 
-        let file: any = Array.from(values.file);
-        file = file[0];
+        const files: File[] = Array.from(values.file as FileList);
+        const file: File = files[0];
 
         const result = await axios.get(
           `/api/dashboard/get-upload-url?fileName=${file.name}&fileType=${file.type}`
@@ -293,41 +289,42 @@ function SinglePost({ postId }: { postId: string }) {
         toast.success(`Edit file success`);
 
         fetchSinglePostData();
-      } catch (error: any) {
+      } catch (error: unknown) {
         const axiosError = error as AxiosError<ApiResponse>;
 
         toast.error("Failed to edit file", {
           description:
             axiosError.response?.data.message ||
-            error.message ||
-            `Something went wrong`,
+            (error instanceof Error ? error.message : `Something went wrong`),
         });
       } finally {
         closeDialog();
         setIsEditSubmitting(false);
       }
     },
-    []
+    [fetchSinglePostData]
   );
 
-  const handleDeleteMessage = useCallback(async (messageId: string) => {
-    try {
-      const result = await axios.delete(
-        `/api/dashboard/delete-message?messageId=${messageId}`
-      );
+  const handleDeleteMessage = useCallback(
+    async (messageId: string) => {
+      try {
+        await axios.delete(
+          `/api/dashboard/delete-message?messageId=${messageId}`
+        );
 
-      fetchSinglePostData();
-    } catch (error: any) {
-      const axiosError = error as AxiosError<ApiResponse>;
+        fetchSinglePostData();
+      } catch (error: unknown) {
+        const axiosError = error as AxiosError<ApiResponse>;
 
-      toast.error("Failed to delete message", {
-        description:
-          axiosError.response?.data.message ||
-          error.message ||
-          "Something went wrong",
-      });
-    }
-  }, []);
+        toast.error("Failed to delete message", {
+          description:
+            axiosError.response?.data.message ||
+            (error instanceof Error ? error.message : "Something went wrong"),
+        });
+      }
+    },
+    [fetchSinglePostData]
+  );
 
   return (
     <>
@@ -476,11 +473,14 @@ function ImageCard({
       <HoverCard>
         <HoverCardTrigger asChild>
           {imgType.includes("image") ? (
-            <img
-              src={imgRef}
-              alt={keyValue}
-              className="w-[18rem] h-[18rem] cover-object rounded-lg"
-            />
+            <div className="w-[18rem] h-[18rem] relative">
+              <Image
+                src={imgRef}
+                alt={keyValue}
+                className="cover-object rounded-lg"
+                fill
+              />
+            </div>
           ) : (
             <video
               className="w-[18rem] h-[18rem] object-cover rounded-lg"
@@ -690,8 +690,8 @@ function MessageCard({
   postId: string;
   handleDeleteMessage: (messageId: string) => void;
 }) {
-  let date = new Date(message.createdAt);
-  let displayDate = `${date.getDate()}-${date.getMonth().toString().padStart(2, "0")}-${date.getFullYear()} ${date.getHours().toString().padStart(2, ")")}:${date.getMinutes().toString().padStart(2, "0")}`;
+  const date = new Date(message.createdAt);
+  const displayDate = `${date.getDate()}-${date.getMonth().toString().padStart(2, "0")}-${date.getFullYear()} ${date.getHours().toString().padStart(2, ")")}:${date.getMinutes().toString().padStart(2, "0")}`;
 
   return (
     <>

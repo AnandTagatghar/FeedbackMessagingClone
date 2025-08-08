@@ -21,8 +21,10 @@ export default async function dbConnect() {
     isConnectionObj.isConnected = connection.connections[0].readyState;
 
     console.log(`DB connection success`);
-  } catch (error: any) {
-    console.error(`DB connection failed: ${error.message} `);
+  } catch (error: unknown) {
+    console.error(
+      `DB connection failed: ${error instanceof Error ? error.message : "Something went wrong"} `
+    );
     process.exit(1);
   }
 }

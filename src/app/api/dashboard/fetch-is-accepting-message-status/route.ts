@@ -43,13 +43,15 @@ export async function GET(request: Request) {
       },
       { status: 200 }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     return Response.json(
       {
         status: false,
         statusCode: 500,
         message:
-          error.message || `Error on fetch-is-accepting-message-status route`,
+          error instanceof Error
+            ? error.message
+            : `Error on fetch-is-accepting-message-status route`,
       },
       { status: 500 }
     );
@@ -121,13 +123,15 @@ export async function PUT(request: Request) {
       },
       { status: 200 }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     return Response.json(
       {
         status: false,
         statusCode: 500,
         message:
-          error.message || `Error on fetch-is-accepting-message-status route`,
+          error instanceof Error
+            ? error.message
+            : `Error on fetch-is-accepting-message-status route`,
       },
       { status: 500 }
     );
